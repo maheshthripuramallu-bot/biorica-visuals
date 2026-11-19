@@ -1,4 +1,4 @@
-export const MEDIA_BUCKETS = ["pack-images", "visual-aids"] as const;
+export const MEDIA_BUCKETS = ["pack-images", "visual-aids", "product-packs"] as const;
 export type MediaBucket = (typeof MEDIA_BUCKETS)[number];
 
 /** Stable, public URL for a stored file, served through the app. */

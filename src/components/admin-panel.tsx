@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { Download, Edit2, FileUp, Loader2, Plus, Save, Trash2, X } from "lucide-react";
+import { Download, Edit2, FileUp, ImagePlus, Loader2, Plus, Save, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,10 +13,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { catalogQuery, type Product } from "@/lib/catalog";
 import { parseProductCsv, productInput } from "@/lib/admin-import";
 import { mediaUrl, randomFileName } from "@/lib/media";
-import { compressImage, dataUrlToBlob, slugify } from "@/lib/canvas";
+import { slugify } from "@/lib/canvas";
 import { pdfSlides } from "@/lib/pdf-slides";
 import { CompanyBranding } from "./company-branding";
-import { extractColors, HEX } from "@/lib/themes";
+import { HEX } from "@/lib/themes";
+
+import { ProductPackUploader } from "./product-pack-uploader";
+import { PackImage } from "./pack-image";
+import { uploadProductPack } from "@/lib/product-packs";
 
 const emptyDivision = { name: "", slug: "", therapy_tag: "", description: "", display_order: 0 };
 const emptyProduct = { division_id: "", brand_name: "", composition: "", dosage_form: "Tablets", indications: [] as string[], pack_image_url: null as string | null, is_top_product: false, is_upcoming: false, brand_color: null as string | null };
@@ -30,6 +34,8 @@ export function AdminPanel() {
   const [csv, setCsv] = useState<ReturnType<typeof parseProductCsv> | null>(null);
   const [slideProduct, setSlideProduct] = useState(""); const [slideTitle, setSlideTitle] = useState(""); const [slideFiles, setSlideFiles] = useState<File[]>([]);
   const [remove, setRemove] = useState<{ table: "products" | "divisions" | "visual_aids"; id: string; name: string } | null>(null);
+  const quickInput = useRef<HTMLInputElement>(null);
+  const [quickProduct, setQuickProduct] = useState<Product | null>(null);
   const refresh = () => qc.invalidateQueries({ queryKey: ["catalog"] });
   async function action(fn: () => Promise<void>, success: string) {
     setBusy(true); try { await fn(); await refresh(); toast.success(success); } catch (e) { toast.error(e instanceof Error ? e.message : "Couldn't save changes"); } finally { setBusy(false); setProgress(""); }
@@ -38,15 +44,13 @@ export function AdminPanel() {
   async function saveProduct(e: FormEvent) {
     e.preventDefault(); if (!product) return; const current = product;
     await action(async () => {
-      let url = current.pack_image_url;
-      if (pack) {
-        const blob = await dataUrlToBlob(await compressImage(pack)); const path = randomFileName("png");
-        const { error } = await supabase.storage.from("pack-images").upload(path, blob, { contentType: blob.type }); if (error) throw error;
-        url = mediaUrl("pack-images", path);
-      }
-      const data = productInput.parse({ ...current, pack_image_url: url, indications: indications.split("\n").map((s) => s.trim()).filter(Boolean) });
-      const result = current.id ? await supabase.from("products").update(data).eq("id", current.id) : await supabase.from("products").insert(data);
-      if (result.error) throw result.error; setProduct(null);
+      const data = productInput.parse({ ...current, indications: indications.split("\n").map((s) => s.trim()).filter(Boolean) });
+      const uploaded = pack ? await uploadProductPack(pack) : null;
+      try {
+        if (uploaded) data.pack_image_url = uploaded.url;
+        const result = current.id ? await supabase.from("products").update(data).eq("id", current.id).select("id").single() : await supabase.from("products").insert(data).select("id").single();
+        if (result.error) throw result.error; setProduct(null); setPack(null);
+      } catch (e) { if (uploaded) await supabase.storage.from("product-packs").remove([uploaded.path]); throw e; }
     }, "Product saved");
   }
   async function saveDivision(e: FormEvent) {
@@ -82,10 +86,19 @@ export function AdminPanel() {
   const products = catalog.products.filter((p) => `${p.brand_name} ${p.composition}`.toLowerCase().includes(query.toLowerCase()));
   return <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
     <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-semibold text-teal">Biorica Sciences Pvt Ltd</p><h1 className="mt-1 text-3xl font-extrabold">Catalog administration</h1></div><p className="text-sm text-muted-foreground">{catalog.divisions.length} divisions · {catalog.products.length} products · {catalog.visualAids.length} visual aids</p></div>
+    <input ref={quickInput} type="file" className="hidden" aria-label="Quick upload pack image" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={(e) => {
+      const file = e.target.files?.[0]; e.target.value = "";
+      if (!file || !quickProduct) return; const current = quickProduct;
+      void action(async () => {
+        const uploaded = await uploadProductPack(file);
+        try { const { error } = await supabase.from("products").update({ pack_image_url: uploaded.url }).eq("id", current.id).select("id").single(); if (error) throw error; }
+        catch (e) { await supabase.storage.from("product-packs").remove([uploaded.path]); throw e; }
+      }, `Pack image saved for ${current.brand_name}`);
+    }}/>
     <Tabs defaultValue="products" className="mt-8"><TabsList className="h-auto flex-wrap"><TabsTrigger value="products">Products</TabsTrigger><TabsTrigger value="divisions">Divisions</TabsTrigger><TabsTrigger value="import">CSV import</TabsTrigger><TabsTrigger value="slides">Official slides</TabsTrigger><TabsTrigger value="branding">Company branding</TabsTrigger></TabsList>
       <TabsContent value="branding" className="mt-6"><CompanyBranding/></TabsContent>
       <TabsContent value="products" className="mt-6"><div className="flex flex-wrap gap-3"><Input aria-label="Search products" placeholder="Search brands or compositions" value={query} onChange={(e) => setQuery(e.target.value)} className="max-w-md"/><Button onClick={() => editProduct()}><Plus/>Add product</Button></div>
-        <div className="mt-5 divide-y divide-border">{products.map((p) => <div key={p.id} className="flex items-start gap-3 py-4"><div className="min-w-0 flex-1"><p className="font-bold">{p.brand_name}</p><p className="mt-1 break-words text-sm text-muted-foreground">{p.composition}</p><p className="mt-1 text-xs text-teal-strong">{catalog.divisions.find((d) => d.id === p.division_id)?.name} · {p.dosage_form}</p></div><Button variant="ghost" size="icon" title="Edit product" aria-label={`Edit ${p.brand_name}`} onClick={() => editProduct(p)}><Edit2/></Button><Button variant="ghost" size="icon" title="Delete product" aria-label={`Delete ${p.brand_name}`} onClick={() => setRemove({ table: "products", id: p.id, name: p.brand_name })}><Trash2/></Button></div>)}{!products.length && <p className="py-8 text-muted-foreground">No matching products.</p>}</div>
+        <div className="mt-5 divide-y divide-border">{products.map((p) => <div key={p.id} className="flex flex-wrap items-start gap-3 py-4"><PackImage key={`${p.id}-${p.pack_image_url}`} src={p.pack_image_url} brand={p.brand_name} compact className="size-16 shrink-0 rounded-md border border-border"/><div className="min-w-0 flex-1"><p className="font-bold">{p.brand_name}</p><p className="mt-1 break-words text-sm text-muted-foreground">{p.composition}</p><p className="mt-1 text-xs text-teal-strong">{catalog.divisions.find((d) => d.id === p.division_id)?.name} · {p.dosage_form}</p></div><Button variant="ghost" size="icon" disabled={busy} title="Upload / Change Image" aria-label={`Upload / Change Image for ${p.brand_name}`} onClick={() => { setQuickProduct(p); quickInput.current?.click(); }}>{busy && quickProduct?.id === p.id ? <Loader2 className="animate-spin"/> : <ImagePlus/>}</Button><Button variant="ghost" size="icon" title="Edit product" aria-label={`Edit ${p.brand_name}`} onClick={() => editProduct(p)}><Edit2/></Button><Button variant="ghost" size="icon" title="Delete product" aria-label={`Delete ${p.brand_name}`} onClick={() => setRemove({ table: "products", id: p.id, name: p.brand_name })}><Trash2/></Button></div>)}{!products.length && <p className="py-8 text-muted-foreground">No matching products.</p>}</div>
       </TabsContent>
       <TabsContent value="divisions" className="mt-6"><Button onClick={() => setDivision(emptyDivision)}><Plus/>Add division</Button><div className="mt-5 divide-y divide-border">{catalog.divisions.map((d) => <div key={d.id} className="flex items-center gap-3 py-4"><div className="min-w-0 flex-1"><p className="font-bold">{d.name}</p><p className="text-sm text-muted-foreground">{d.therapy_tag} · {catalog.products.filter((p) => p.division_id === d.id).length} products</p></div><Button variant="ghost" size="icon" title="Edit division" aria-label={`Edit ${d.name}`} onClick={() => setDivision(d)}><Edit2/></Button><Button variant="ghost" size="icon" title="Delete division" aria-label={`Delete ${d.name}`} onClick={() => setRemove({ table: "divisions", id: d.id, name: d.name })}><Trash2/></Button></div>)}</div></TabsContent>
       <TabsContent value="import" className="mt-6 max-w-3xl space-y-5"><h2 className="text-xl font-bold">Import products</h2><Button variant="outline" onClick={() => { const blob = new Blob(["division,brand_name,composition,dosage_form,indications,is_top_product,is_upcoming\nneurology-neuropathy,EXAMPLE BRAND,Replace with approved composition,Tablets,Indication one|Indication two,false,false\n"], { type: "text/csv" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "biorica-products-template.csv"; a.click(); URL.revokeObjectURL(url); }}><Download/>Download CSV template</Button>
@@ -102,11 +115,9 @@ export function AdminPanel() {
       <Label htmlFor="composition">Full composition</Label><Textarea id="composition" value={product.composition} onChange={(e) => setProduct({ ...product, composition: e.target.value })}/>
       <Label htmlFor="dosage">Dosage form</Label><Input id="dosage" required list="dosages" value={product.dosage_form} onChange={(e) => setProduct({ ...product, dosage_form: e.target.value })}/><datalist id="dosages">{["Tablets", "Capsules", "Nano Shots", "Softgels", "Syrup", "Sachets", "Other"].map((s) => <option key={s}>{s}</option>)}</datalist>
       <Label htmlFor="indications">Indications / USPs — one per line</Label><Textarea id="indications" value={indications} onChange={(e) => setIndications(e.target.value)}/>
-      <Label htmlFor="pack">Pack image</Label><Input id="pack" type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setPack(e.target.files?.[0] ?? null)}/>
-      {product.pack_image_url && !pack && <div className="flex items-center gap-3"><img src={product.pack_image_url} alt="Current pack" className="size-20 object-contain"/><Button type="button" variant="ghost" onClick={() => setProduct({ ...product, pack_image_url: null })}><X/>Remove image</Button></div>}
+      <Label>Pack image</Label><ProductPackUploader file={pack} url={product.pack_image_url} disabled={busy} onFile={setPack} onUrl={(url) => setProduct({ ...product, pack_image_url: url })} onColor={(color) => setProduct((cur) => cur && { ...cur, brand_color: color })}/>
       <Label htmlFor="brand-color">Pack brand colour (optional)</Label>
       <div className="flex flex-wrap items-center gap-2"><input type="color" aria-label="Pick pack brand colour" className="h-10 w-12 rounded-md border border-input bg-card" value={product.brand_color ?? "#0D9488"} onChange={(e) => setProduct({ ...product, brand_color: e.target.value.toUpperCase() })}/><Input id="brand-color" className="w-32" placeholder="#0D9488" value={product.brand_color ?? ""} onChange={(e) => setProduct({ ...product, brand_color: e.target.value.trim() || null })} aria-invalid={Boolean(product.brand_color && !HEX.test(product.brand_color))}/>
-        <Button type="button" variant="outline" size="sm" disabled={!pack && !product.pack_image_url} onClick={async () => { const src = pack ? URL.createObjectURL(pack) : product.pack_image_url!; try { const [main, accent] = await extractColors(src); const pick = accent !== main ? accent : main; setProduct((cur) => cur && { ...cur, brand_color: pick }); toast.success(`Pack colour set to ${pick}`); } catch { toast.error("Couldn't read colours from this pack image."); } finally { if (pack) URL.revokeObjectURL(src); } }}>Auto-extract from pack image</Button>
         {product.brand_color && <Button type="button" variant="ghost" size="sm" onClick={() => setProduct({ ...product, brand_color: null })}><X/>Clear</Button>}</div>
       <div className="flex flex-wrap gap-4"><Label className="flex items-center gap-2"><Checkbox checked={product.is_top_product} onCheckedChange={(v) => setProduct({ ...product, is_top_product: v === true })}/>Top product</Label><Label className="flex items-center gap-2"><Checkbox checked={product.is_upcoming} onCheckedChange={(v) => setProduct({ ...product, is_upcoming: v === true })}/>Upcoming launch</Label></div><Button type="submit" disabled={busy}><Save/>Save product</Button>
     </form>}</DialogContent></Dialog>

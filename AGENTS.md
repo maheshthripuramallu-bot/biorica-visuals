@@ -36,3 +36,4 @@ use the editor.
 - Keep greeting history and its storage bucket owner-private; use expiring signed image URLs rather than the public catalog media proxy to protect doctor details.
 - Themes write hex values onto the shared semantic CSS tokens at runtime (ThemeSync), so presets, logo-matched palettes and canvases all follow one source of truth.
 - Logo finishes (original/white/gold) are applied client-side to the transparent master logo via src/lib/logo.ts; never draw a plate or box behind the logo.
+- Product pack uploads preserve original image bytes in product-packs and use the public media proxy while workspace public buckets are blocked; both /manage and /admin reuse AdminPanel to keep editing behavior identical.

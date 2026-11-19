@@ -1,0 +1,4 @@
+CREATE POLICY "Public read product packs" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'product-packs');
+CREATE POLICY "Admins upload product packs" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'product-packs' AND public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "Admins update product packs" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'product-packs' AND public.has_role(auth.uid(), 'admin')) WITH CHECK (bucket_id = 'product-packs' AND public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "Admins delete product packs" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'product-packs' AND public.has_role(auth.uid(), 'admin'));

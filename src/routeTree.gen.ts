@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedManageRouteImport } from './routes/_authenticated/manage'
 import { Route as DivisionsIndexRouteImport } from './routes/divisions.index'
 import { Route as DivisionsSlugRouteImport } from './routes/divisions.$slug'
 import { Route as FlipbookDivisionSlugRouteImport } from './routes/flipbook.$divisionSlug'
@@ -49,6 +50,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedManageRoute = AuthenticatedManageRouteImport.update({
+  id: '/manage',
+  path: '/manage',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const DivisionsIndexRoute = DivisionsIndexRouteImport.update({
   id: '/divisions/',
   path: '/divisions/',
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/manage': typeof AuthenticatedManageRoute
   '/divisions/$slug': typeof DivisionsSlugRoute
   '/flipbook/$divisionSlug': typeof FlipbookDivisionSlugRoute
   '/divisions/': typeof DivisionsIndexRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/manage': typeof AuthenticatedManageRoute
   '/divisions/$slug': typeof DivisionsSlugRoute
   '/flipbook/$divisionSlug': typeof FlipbookDivisionSlugRoute
   '/divisions': typeof DivisionsIndexRoute
@@ -100,6 +108,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/search': typeof SearchRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/manage': typeof AuthenticatedManageRoute
   '/divisions/$slug': typeof DivisionsSlugRoute
   '/flipbook/$divisionSlug': typeof FlipbookDivisionSlugRoute
   '/divisions/': typeof DivisionsIndexRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/search'
     | '/admin'
+    | '/manage'
     | '/divisions/$slug'
     | '/flipbook/$divisionSlug'
     | '/divisions/'
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/search'
     | '/admin'
+    | '/manage'
     | '/divisions/$slug'
     | '/flipbook/$divisionSlug'
     | '/divisions'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/search'
     | '/_authenticated/admin'
+    | '/_authenticated/manage'
     | '/divisions/$slug'
     | '/flipbook/$divisionSlug'
     | '/divisions/'
@@ -198,6 +210,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/manage': {
+      id: '/_authenticated/manage'
+      path: '/manage'
+      fullPath: '/manage'
+      preLoaderRoute: typeof AuthenticatedManageRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/divisions/': {
       id: '/divisions/'
       path: '/divisions'
@@ -231,10 +250,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedManageRoute: typeof AuthenticatedManageRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedManageRoute: AuthenticatedManageRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

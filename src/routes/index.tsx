@@ -50,9 +50,9 @@ import { ProductPicker } from "@/components/product-picker";
 import { ClinicalBriefEditor } from "@/components/clinical-brief";
 
 export const Route = createFileRoute("/")({
-  validateSearch: (search: Record<string, unknown>): { product?: string | undefined; tab?: "greetings" | undefined } => ({
+  validateSearch: (search: Record<string, unknown>): { product?: string | undefined; tab?: "greetings" | "case" | undefined } => ({
     product: typeof search["product"] === "string" ? search["product"] : undefined,
-    tab: search["tab"] === "greetings" ? "greetings" : undefined,
+    tab: search["tab"] === "greetings" || search["tab"] === "case" ? search["tab"] : undefined,
   }),
   head: () => ({
     meta: [
@@ -70,9 +70,9 @@ export const Route = createFileRoute("/")({
 
 function StudioTabs() {
   const { tab, product } = Route.useSearch(); const navigate = useNavigate();
-  return <Tabs value={tab === "greetings" ? "greetings" : "products"} onValueChange={(value) => navigate({ to: "/", search: { product, tab: value === "greetings" ? "greetings" : undefined }, replace: true })}>
-    <div className="border-b border-border bg-card"><div className="mx-auto max-w-7xl px-4 py-4 sm:px-6"><TabsList className="grid h-auto w-full max-w-lg grid-cols-2"><TabsTrigger className="min-h-11 whitespace-normal text-center" value="products">Product Visual Aids</TabsTrigger><TabsTrigger className="min-h-11 whitespace-normal text-center" value="greetings">Doctor Greeting Cards</TabsTrigger></TabsList></div></div>
-    <TabsContent value="products" className="mt-0"><Studio/></TabsContent><TabsContent value="greetings" className="mt-0"><GreetingStudio/></TabsContent>
+  return <Tabs value={tab ?? "products"} onValueChange={(value) => navigate({ to: "/", search: { product, tab: value === "greetings" || value === "case" ? value : undefined }, replace: true })}>
+    <div className="border-b border-border bg-card"><div className="mx-auto max-w-7xl px-4 py-4 sm:px-6"><TabsList className="grid h-auto w-full max-w-2xl grid-cols-3"><TabsTrigger className="min-h-11 whitespace-normal text-center" value="products">Product Visual Aids</TabsTrigger><TabsTrigger className="min-h-11 whitespace-normal text-center" value="case">Clinical Case Poster</TabsTrigger><TabsTrigger className="min-h-11 whitespace-normal text-center" value="greetings">Doctor Greeting Cards</TabsTrigger></TabsList></div></div>
+    <TabsContent value="products" className="mt-0"><Studio/></TabsContent><TabsContent value="case" className="mt-0"><Studio caseMode/></TabsContent><TabsContent value="greetings" className="mt-0"><GreetingStudio/></TabsContent>
   </Tabs>;
 }
 
@@ -89,7 +89,7 @@ type Creative = {
   saving?: boolean;
 };
 
-function Studio() {
+function Studio({ caseMode = false }: { caseMode?: boolean }) {
   const { product: productParam } = Route.useSearch();
   const { data: catalog } = useSuspenseQuery(catalogQuery);
   const { data: auth } = useAuth();
@@ -105,8 +105,8 @@ function Studio() {
   const [brandHint, setBrandHint] = useState("");
   const [productId, setProductId] = useState<string | null>(null);
   const [specialty, setSpecialty] = useState<string>("General Physician");
-  const [creativeType, setCreativeType] = useState<CreativeType>("slide");
-  const [variations, setVariations] = useState(2);
+  const [creativeType, setCreativeType] = useState<CreativeType>(caseMode ? "case_poster" : "slide");
+  const [variations, setVariations] = useState(caseMode ? 1 : 2);
   const [matchPack, setMatchPack] = useState(true);
   const [showPhone, setShowPhone] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -365,10 +365,10 @@ function Studio() {
             <Sparkles className="size-3.5" /> AI Visual Aid Studio
           </Badge>
           <h1 className="mt-4 max-w-3xl text-3xl font-extrabold leading-[1.1] text-primary sm:text-5xl">
-            Biorica AI Visual Aid Studio
+            {caseMode ? "Clinical Case Poster" : "Biorica AI Visual Aid Studio"}
           </h1>
           <p className="mt-3 max-w-2xl text-base text-muted-foreground sm:text-lg">
-            Upload a product pack to generate doctor detailing creatives — indications, USPs and ready-to-share visuals.
+            {caseMode ? "Upload a pack or pick a catalog product, review the AI clinical brief, then generate a print-ready MNC-style case poster." : "Upload a product pack to generate doctor detailing creatives — indications, USPs and ready-to-share visuals."}
           </p>
         </div>
       </section>
@@ -509,7 +509,7 @@ function Studio() {
               )}
             </div>
 
-            <div className="space-y-1.5">
+            {!caseMode && <div className="space-y-1.5">
               <Label>Creative type</Label>
               <div className="grid grid-cols-3 gap-2">
                 {CREATIVE_TYPES.map((t) => (
@@ -535,7 +535,7 @@ function Studio() {
                   </button>
                 ))}
               </div>
-            </div>
+            </div>}
 
             <div className="space-y-1.5">
               <Label>Visual art direction</Label>
@@ -581,7 +581,7 @@ function Studio() {
 
             <Button variant="teal" size="xl" className="h-auto min-h-12 w-full whitespace-normal px-3 py-3 text-sm" onClick={generate} disabled={busy || compressing > 0}>
               {busy ? <Loader2 className="animate-spin" /> : <Wand2 />}
-              {phase === "analyzing" ? "Drafting the clinical brief…" : phase === "generating" ? "Creating visual aids…" : "Auto-Generate Indications & Visual Aids"}
+              {phase === "analyzing" ? "Drafting the clinical brief…" : phase === "generating" ? "Creating visual aids…" : caseMode ? "Generate Clinical Brief" : "Auto-Generate Indications & Visual Aids"}
             </Button>
           </div>
         </section>
@@ -596,7 +596,7 @@ function Studio() {
                 <>
                   <ClinicalBriefEditor brief={analysis} onChange={setAnalysis} />
                   <Button variant="teal" size="xl" className="w-full" onClick={generateFinal} disabled={busy}>
-                    {phase === "generating" ? <Loader2 className="animate-spin" /> : <Wand2 />} Generate Final Visual
+                    {phase === "generating" ? <Loader2 className="animate-spin" /> : <Wand2 />} {caseMode ? "Generate Clinical Poster" : "Generate Final Visual"}
                   </Button>
                 </>
               )}

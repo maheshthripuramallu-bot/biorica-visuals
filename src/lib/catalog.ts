@@ -50,6 +50,7 @@ export const SPECIALTIES = [
   "Gastroenterologist",
   "Diabetologist",
   "Psychiatrist",
+  "Cardiologist",
 ] as const;
 
 export const CREATIVE_TYPES = [

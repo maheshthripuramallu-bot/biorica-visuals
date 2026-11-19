@@ -7,8 +7,8 @@ import { PackImage } from "@/components/pack-image";
 import { catalogQuery, divisionFor, searchCatalog, type Catalog, type Product } from "@/lib/catalog";
 
 export const Route = createFileRoute("/search")({
-  validateSearch: (search: Record<string, unknown>): { q?: string } => ({
-    q: typeof search.q === "string" && search.q ? search.q : undefined,
+  validateSearch: (search: Record<string, unknown>): { q?: string | undefined } => ({
+    q: typeof search["q"] === "string" && search["q"] ? search["q"] : undefined,
   }),
   head: () => ({
     meta: [
@@ -176,7 +176,7 @@ function Group({ icon, title, count, children }: { icon: React.ReactNode; title:
   );
 }
 
-function Highlight({ text, query }: { text: string; query?: string }) {
+function Highlight({ text, query }: { text: string; query?: string | undefined }) {
   const terms = (query ?? "").trim().split(/\s+/).filter((t) => t.length >= 2);
   if (!terms.length) return <>{text}</>;
   const alt = terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
@@ -195,7 +195,7 @@ function Highlight({ text, query }: { text: string; query?: string }) {
   );
 }
 
-function ProductRow({ product, catalog, highlight, note }: { product: Product; catalog: Catalog; highlight?: string; note?: string }) {
+function ProductRow({ product, catalog, highlight, note }: { product: Product; catalog: Catalog; highlight?: string | undefined; note?: string | undefined }) {
   const division = divisionFor(catalog, product);
   return (
     <div className="flex items-center gap-3 p-3 surface-card sm:gap-4">

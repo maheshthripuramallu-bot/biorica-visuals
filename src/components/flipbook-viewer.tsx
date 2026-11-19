@@ -9,9 +9,9 @@ export type Slide = {
   key: string;
   label: string;
   kind: "image" | "pdf" | "card";
-  src?: string;
-  product?: Product;
-  divisionName?: string;
+  src?: string | undefined;
+  product?: Product | undefined;
+  divisionName?: string | undefined;
 };
 
 export function FlipbookViewer({
@@ -80,7 +80,7 @@ export function FlipbookViewer({
 
   const dist = () => {
     const [a, b] = [...pointers.current.values()];
-    return Math.hypot(a.x - b.x, a.y - b.y);
+    return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
   };
 
   function onPointerDown(e: React.PointerEvent) {

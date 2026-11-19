@@ -39,8 +39,8 @@ import { analyzePack, generateCreative, type PackAnalysis } from "@/lib/studio.f
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
-  validateSearch: (search: Record<string, unknown>): { product?: string } => ({
-    product: typeof search.product === "string" ? search.product : undefined,
+  validateSearch: (search: Record<string, unknown>): { product?: string | undefined } => ({
+    product: typeof search["product"] === "string" ? search["product"] : undefined,
   }),
   head: () => ({
     meta: [
@@ -121,8 +121,14 @@ function Studio() {
     async (files: FileList | File[]) => {
       const list = Array.from(files).filter((f) => /image\/(png|jpe?g|webp)/.test(f.type));
       const room = MAX_PACK_IMAGES - images.length;
-      if (list.length === 0) return toast.error("Please choose PNG or JPG images.");
-      if (room <= 0) return toast.error(`You can upload up to ${MAX_PACK_IMAGES} pack images.`);
+      if (list.length === 0) {
+        toast.error("Please choose PNG or JPG images.");
+        return;
+      }
+      if (room <= 0) {
+        toast.error(`You can upload up to ${MAX_PACK_IMAGES} pack images.`);
+        return;
+      }
       if (list.length > room) toast.info(`Only the first ${room} image${room === 1 ? "" : "s"} were added (max ${MAX_PACK_IMAGES}).`);
       const take = list.slice(0, room);
       setCompressing((c) => c + take.length);

@@ -9,7 +9,7 @@ export const Route = createFileRoute("/api/public/media/$")({
     handlers: {
       GET: async ({ params }) => {
         const splat = params._splat ?? "";
-        const [bucket, ...rest] = splat.split("/");
+        const [bucket = "", ...rest] = splat.split("/");
         const path = rest.map((p) => decodeURIComponent(p)).join("/");
         if (!(MEDIA_BUCKETS as readonly string[]).includes(bucket) || !path || path.includes("..")) {
           return new Response("Not found", { status: 404 });

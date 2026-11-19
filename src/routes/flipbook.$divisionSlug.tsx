@@ -6,8 +6,8 @@ import { catalogQuery, resolveDivision } from "@/lib/catalog";
 import { buildSlides } from "@/lib/flipbook";
 
 export const Route = createFileRoute("/flipbook/$divisionSlug")({
-  validateSearch: (search: Record<string, unknown>): { product?: string } => ({
-    product: typeof search.product === "string" ? search.product : undefined,
+  validateSearch: (search: Record<string, unknown>): { product?: string | undefined } => ({
+    product: typeof search["product"] === "string" ? search["product"] : undefined,
   }),
   loader: async ({ context, params }) => {
     const catalog = await context.queryClient.ensureQueryData(catalogQuery);

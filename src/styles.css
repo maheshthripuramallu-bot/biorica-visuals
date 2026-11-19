@@ -39,6 +39,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-header: var(--header);
   --color-teal: var(--teal);
   --color-teal-foreground: var(--teal-foreground);
   --color-teal-soft: var(--teal-soft);
@@ -92,6 +93,7 @@
   --greeting-vibrant-ink: #174b44;
   --greeting-vibrant-accent: #bf3855;
   --radius: 0.75rem;
+  --header: oklch(1 0 0);
   --background: oklch(0.984 0.003 247.9); /* #F8FAFC */
   --foreground: oklch(0.275 0.056 249.8); /* #0F2942 */
   --card: oklch(1 0 0);

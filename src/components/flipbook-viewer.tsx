@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Eye, EyeOff, FileText, Maximize, Minimize, X, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -297,7 +298,7 @@ function SlideView({ slide, uiHidden }: { slide: Slide; uiHidden: boolean }) {
   return (
     <div
       className="@container relative overflow-hidden rounded-xl bg-card text-card-foreground shadow-elevated"
-      style={{ width: `min(100%, calc((100dvh - ${reserve}) * 16 / 9))`, aspectRatio: "16 / 9" }}
+      style={{ width: `min(100%, calc((100dvh - ${reserve}) * 16 / 9))`, aspectRatio: "16 / 9", ...(p.brand_color ? { "--teal": p.brand_color, "--teal-soft": `color-mix(in oklab, ${p.brand_color} 14%, white)`, "--teal-strong": `color-mix(in oklab, ${p.brand_color} 78%, black)` } as CSSProperties : {}) }}
     >
       <div className="absolute inset-0 bg-hero" />
       <div className="relative grid h-[91.5%] grid-cols-[1.15fr_1fr] gap-[3cqw] p-[4.5cqw]">

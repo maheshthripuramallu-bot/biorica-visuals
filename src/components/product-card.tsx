@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PackImage } from "@/components/pack-image";
 import type { Product } from "@/lib/catalog";
+import { readableOn } from "@/lib/themes";
 import { downloadDataUrl, renderProductCard, slugify } from "@/lib/canvas";
 
 export function ProductCard({
@@ -36,13 +37,13 @@ export function ProductCard({
   return (
     <article
       className="group flex flex-col overflow-hidden surface-card transition-shadow hover:shadow-elevated animate-fade-up"
-      style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
+      style={{ animationDelay: `${Math.min(index, 8) * 40}ms`, borderTop: `4px solid ${product.brand_color ?? "var(--teal)"}` }}
     >
       <div className="relative">
         <PackImage src={product.pack_image_url} brand={product.brand_name} dosageForm={product.dosage_form} className="aspect-[4/3] border-b border-border" />
         <div className="absolute left-3 top-3 flex gap-1.5">
           <Badge variant="navy" className="bg-card/90 backdrop-blur">{product.dosage_form}</Badge>
-          {product.is_top_product && <Badge variant="teal">Top</Badge>}
+          {product.is_top_product && <Badge variant="teal" style={product.brand_color ? { background: product.brand_color, color: readableOn(product.brand_color) } : undefined}>Top</Badge>}
           {product.is_upcoming && <Badge variant="amber">Upcoming</Badge>}
         </div>
       </div>
@@ -55,7 +56,7 @@ export function ProductCard({
           <ul className="space-y-1.5">
             {product.indications.slice(0, 3).map((ind) => (
               <li key={ind} className="flex gap-2 text-sm text-foreground">
-                <span className="mt-[7px] size-1.5 shrink-0 rounded-full bg-teal" />
+                <span className="mt-[7px] size-1.5 shrink-0 rounded-full bg-teal" style={product.brand_color ? { background: product.brand_color } : undefined} />
                 {ind}
               </li>
             ))}

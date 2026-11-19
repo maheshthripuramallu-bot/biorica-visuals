@@ -20,6 +20,7 @@ export type Product = {
   pack_image_url: string | null;
   is_top_product: boolean;
   is_upcoming: boolean;
+  brand_color: string | null;
 };
 
 export type VisualAid = {

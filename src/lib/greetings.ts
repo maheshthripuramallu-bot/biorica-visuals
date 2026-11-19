@@ -11,7 +11,7 @@ export const GREETING_STYLES = ["Classic Royal Navy & Gold", "Festive Traditiona
 export const LANGUAGES = ["English", "Telugu", "Hindi", "Tamil", "Kannada", "Malayalam", "Marathi", "Gujarati", "Bengali"] as const;
 export const LANGUAGE_LABELS = ["English", "Telugu (తెలుగు)", "Hindi (हिन्दी)", "Tamil (தமிழ்)", "Kannada (ಕನ್ನಡ)", "Malayalam (മലയാളം)", "Marathi (मराठी)", "Gujarati (ગુજરાતી)", "Bengali (বাংলা)"];
 export const LANGUAGE_FONTS: Record<typeof LANGUAGES[number], string> = { English: "Plus Jakarta Sans", Telugu: "Noto Sans Telugu", Hindi: "Noto Sans Devanagari", Tamil: "Noto Sans Tamil", Kannada: "Noto Sans Kannada", Malayalam: "Noto Sans Malayalam", Marathi: "Noto Sans Devanagari", Gujarati: "Noto Sans Gujarati", Bengali: "Noto Sans Bengali" };
-export const featuredProductsInput = z.array(z.object({ id: z.string().uuid(), brand_name: z.string().max(200), pack_image_url: z.string().nullable() })).max(3);
+export const featuredProductsInput = z.array(z.object({ id: z.string().uuid(), brand_name: z.string().max(200), pack_image_url: z.string().nullable(), brand_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable().optional() })).max(3);
 export const QUALIFICATIONS = ["MBBS", "MD", "MS", "Gynecologist", "Neurologist", "Orthopedic", "Urologist", "General Physician"];
 export const greetingInput = z.object({
   doctorName: z.string().trim().min(1, "Enter the doctor's name.").max(100),
@@ -28,6 +28,7 @@ export const greetingInput = z.object({
   headline: z.string().max(160).default(""),
   products: featuredProductsInput.default([]),
   productDisplay: z.enum(["text", "packs"]).default("text"),
+  matchPalette: z.boolean().default(false),
 });
 export type Greeting = z.infer<typeof greetingInput>;
 export const variationInput = z.number().int().min(1).max(3);

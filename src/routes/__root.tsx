@@ -15,6 +15,7 @@ import { useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 import { BottomNav, TopNav } from "@/components/site-nav";
+import { ThemeSync } from "@/components/theme-sync";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -99,7 +100,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=Cormorant+Garamond:wght@600;700&family=Fraunces:wght@600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap",
       },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@500;700&family=Noto+Sans+Devanagari:wght@500;700&family=Noto+Sans+Tamil:wght@500;700&family=Noto+Sans+Kannada:wght@500;700&family=Noto+Sans+Malayalam:wght@500;700&family=Noto+Sans+Bengali:wght@500;700&family=Noto+Sans+Gujarati:wght@500;700&display=swap" },
       {
@@ -146,6 +147,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <ThemeSync />
       {!immersive && <TopNav />}
       <div className={immersive ? "" : "pb-safe-nav md:pb-0"}>
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}

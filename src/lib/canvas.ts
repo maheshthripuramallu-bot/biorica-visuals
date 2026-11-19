@@ -26,12 +26,19 @@ async function fontsReady() {
   }
 }
 
-function drawFooter(ctx: CanvasRenderingContext2D, w: number, h: number) {
+export type FooterOptions = { company?: { company_name: string; website: string; footer_text: string; company_phone: string } | undefined; accent?: string | undefined; showPhone?: boolean };
+function drawFooter(ctx: CanvasRenderingContext2D, w: number, h: number, o: FooterOptions = {}) {
+  const css = typeof document === "undefined" ? null : getComputedStyle(document.documentElement);
+  const primary = css?.getPropertyValue("--primary").trim() || NAVY;
+  const accent = o.accent || css?.getPropertyValue("--teal").trim() || TEAL;
+  const name = o.company?.company_name || "Biorica Sciences Pvt Ltd";
+  const site = [o.company?.website || "visuals.biorica.in", o.showPhone && o.company?.company_phone ? `Ph: ${o.company.company_phone}` : ""].filter(Boolean).join("  ·  ");
+  const note = o.company?.footer_text ?? "For the use of Registered Medical Practitioners only";
   const fh = Math.round(h * 0.085);
   const y = h - fh;
-  ctx.fillStyle = NAVY;
+  ctx.fillStyle = primary;
   ctx.fillRect(0, y, w, fh);
-  ctx.fillStyle = TEAL;
+  ctx.fillStyle = accent;
   ctx.fillRect(0, y, w, Math.max(3, Math.round(fh * 0.06)));
   const pad = Math.round(w * 0.035);
   const base = Math.round(fh * 0.3);
@@ -39,19 +46,19 @@ function drawFooter(ctx: CanvasRenderingContext2D, w: number, h: number) {
   ctx.fillStyle = "#FFFFFF";
   ctx.font = `700 ${base}px ${DISPLAY}`;
   ctx.textAlign = "left";
-  ctx.fillText("Biorica Sciences Pvt Ltd", pad, y + fh / 2);
+  ctx.fillText(name, pad, y + fh / 2, w * 0.45);
   ctx.textAlign = "right";
   ctx.font = `500 ${Math.round(base * 0.72)}px ${BODY}`;
   ctx.fillStyle = "rgba(255,255,255,0.85)";
-  ctx.fillText("visuals.biorica.in", w - pad, y + fh / 2 - base * 0.42);
+  ctx.fillText(site, w - pad, y + fh / 2 - (note ? base * 0.42 : 0), w * 0.45);
   ctx.fillStyle = "rgba(255,255,255,0.6)";
   ctx.font = `400 ${Math.round(base * 0.58)}px ${BODY}`;
-  ctx.fillText("For the use of Registered Medical Practitioners only", w - pad, y + fh / 2 + base * 0.45);
+  if (note) ctx.fillText(note, w - pad, y + fh / 2 + base * 0.45, w * 0.45);
   ctx.textAlign = "left";
 }
 
-/** Overlays the Biorica Sciences footer on an AI-generated creative. */
-export async function addBioricaFooter(src: string): Promise<string> {
+/** Overlays the company footer on an AI-generated creative. */
+export async function addBioricaFooter(src: string, options: FooterOptions = {}): Promise<string> {
   await fontsReady();
   const img = await loadImage(src);
   const canvas = document.createElement("canvas");
@@ -60,7 +67,7 @@ export async function addBioricaFooter(src: string): Promise<string> {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Your browser couldn't create the image canvas.");
   ctx.drawImage(img, 0, 0);
-  drawFooter(ctx, canvas.width, canvas.height);
+  drawFooter(ctx, canvas.width, canvas.height, options);
   return canvas.toDataURL("image/png");
 }
 

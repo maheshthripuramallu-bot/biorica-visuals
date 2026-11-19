@@ -34,3 +34,4 @@ use the editor.
 - Validate the complete CSV before one bulk insert, so an invalid row cannot leave a partial catalog import.
 - Compose greeting text, portraits, and branding locally over AI-generated backgrounds using CSS palette tokens, so downloaded PNGs preserve exact doctor details and company identity.
 - Keep greeting history and its storage bucket owner-private; use expiring signed image URLs rather than the public catalog media proxy to protect doctor details.
+- Themes write hex values onto the shared semantic CSS tokens at runtime (ThemeSync), so presets, logo-matched palettes and canvases all follow one source of truth.

@@ -1,3 +1,4 @@
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ArrowUpRight, LayoutGrid, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -47,7 +48,7 @@ export function TopNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-card/85 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-border bg-header/90 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
         <Link to="/" aria-label="Biorica Visuals home" className="shrink-0">
           <BrandMark />
@@ -89,6 +90,7 @@ export function TopNav() {
             Admin
           </Link>
         </nav>
+        <ThemeSwitcher />
         {auth?.user ? <Button variant="ghost" size="icon" title="Sign out" aria-label="Sign out" onClick={signOut}><LogOut /></Button> : <Button asChild variant="ghost" size="sm"><Link to="/auth">Sign in</Link></Button>}
         <Link
           to="/admin"

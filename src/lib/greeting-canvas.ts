@@ -3,7 +3,7 @@ import { DEFAULT_COMPANY, type CompanySettings } from "./company";
 import { greetingDimensions, LANGUAGE_FONTS, type Greeting } from "./greetings";
 
 // Canvas reads the same semantic palette as the page; typography is composed locally, never by AI.
-export async function renderGreeting(g: Greeting, logo = "", background = "", variation = 0, company: CompanySettings = DEFAULT_COMPANY) {
+export async function renderGreeting(g: Greeting, logo = "", background = "", variation = 0, company: CompanySettings = DEFAULT_COMPANY, brandAccent = "") {
   await document.fonts.ready;
   const family = `"${LANGUAGE_FONTS[g.language]}", "Plus Jakarta Sans", sans-serif`;
   await Promise.all([document.fonts.load(`500 32px ${family}`, g.headline + g.message + g.doctorName), document.fonts.load(`700 32px ${family}`, g.headline + g.doctorName)]);
@@ -13,7 +13,7 @@ export async function renderGreeting(g: Greeting, logo = "", background = "", va
   const theme = getComputedStyle(document.documentElement);
   const token = (name: string) => theme.getPropertyValue(name).trim();
   const prefix = ["royal", "festive", "clinical", "floral", "vibrant"][["Classic Royal Navy & Gold", "Festive Traditional Indian", "Minimal Clinical White", "Floral & Elegant", "Modern Vibrant Festive"].indexOf(g.style)] ?? "royal";
-  const paper = token(`--greeting-${prefix}-paper`), ink = token(`--greeting-${prefix}-ink`), accent = token(`--greeting-${prefix}-accent`);
+  const paper = token(`--greeting-${prefix}-paper`), ink = token(`--greeting-${prefix}-ink`), accent = (g.matchPalette ? g.products.find((p) => p.brand_color)?.brand_color : "") || brandAccent || token(`--greeting-${prefix}-accent`);
   ctx.fillStyle = paper; ctx.fillRect(0, 0, w, h);
   if (background) { const img = await loadImage(background); const scale = Math.max(w / img.width, h / img.height); ctx.drawImage(img, (w - img.width * scale) / 2, (h - img.height * scale) / 2, img.width * scale, img.height * scale); }
   const pad = w * .085;
@@ -74,7 +74,7 @@ export async function renderGreeting(g: Greeting, logo = "", background = "", va
     ctx.drawImage(image, textX, top + (bandH - lh) / 2, lw, lh); textX += lw + inset * 1.5;
   } catch { /* text-only footer */ }
   const maxW = right - inset * 1.5 - textX;
-  const detail = [company.website, company.address].filter(Boolean).join("  ·  ");
+  const detail = [company.website, company.company_phone && `Ph: ${company.company_phone}`, company.address].filter(Boolean).join("  ·  ");
   const wrap = (text: string, font: string) => { ctx.font = font; const out: string[] = []; let line = ""; for (const word of text.split(/\s+/)) { const t = line ? `${line} ${word}` : word; if (ctx.measureText(t).width > maxW && line) { out.push(line); line = word; } else line = t; } if (line) out.push(line); return out; };
   let size = w * .02, rows: { text: string; font: string; size: number }[] = [];
   for (; size > 6; size -= .5) {

@@ -16,9 +16,9 @@ export const getCompanyLogo = createServerFn({ method: "GET" }).handler(async ()
   return data?.logo_url ?? "";
 });
 export const getCompanySettings = createServerFn({ method: "GET" }).handler(async () => {
-  const { data, error } = await createPublicClient().from("company_branding").select("company_name, address, website, footer_text").eq("id", "official").maybeSingle();
+  const { data, error } = await createPublicClient().from("company_branding").select("company_name, address, website, footer_text, company_phone, active_theme_id, custom_primary_color, custom_accent_color, custom_header_color, heading_font, body_font").eq("id", "official").maybeSingle();
   if (error) throw new Error("Couldn't load company settings.");
-  return data ?? { company_name: "Biorica Sciences Pvt. Ltd.", address: "", website: "biorica.in", footer_text: "" };
+  return data ?? { company_name: "Biorica Sciences Pvt. Ltd.", address: "", website: "biorica.in", footer_text: "", company_phone: "", active_theme_id: "clinical", custom_primary_color: "#0F2942", custom_accent_color: "#0D9488", custom_header_color: "#FFFFFF", heading_font: "Plus Jakarta Sans", body_font: "Inter" };
 });
 export const writeGreeting = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({ doctorName: z.string().max(100), qualification: z.string().max(120), occasion: z.string().min(1).max(100), language: z.enum(LANGUAGES), bilingual: z.boolean() }).parse(input))

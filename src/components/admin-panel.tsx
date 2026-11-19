@@ -16,9 +16,10 @@ import { mediaUrl, randomFileName } from "@/lib/media";
 import { compressImage, dataUrlToBlob, slugify } from "@/lib/canvas";
 import { pdfSlides } from "@/lib/pdf-slides";
 import { CompanyBranding } from "./company-branding";
+import { extractColors, HEX } from "@/lib/themes";
 
 const emptyDivision = { name: "", slug: "", therapy_tag: "", description: "", display_order: 0 };
-const emptyProduct = { division_id: "", brand_name: "", composition: "", dosage_form: "Tablets", indications: [] as string[], pack_image_url: null as string | null, is_top_product: false, is_upcoming: false };
+const emptyProduct = { division_id: "", brand_name: "", composition: "", dosage_form: "Tablets", indications: [] as string[], pack_image_url: null as string | null, is_top_product: false, is_upcoming: false, brand_color: null as string | null };
 const selectClass = "h-10 w-full rounded-md border border-input bg-card px-3 text-sm";
 export function AdminPanel() {
   const { data: catalog } = useSuspenseQuery(catalogQuery); const qc = useQueryClient();
@@ -103,6 +104,10 @@ export function AdminPanel() {
       <Label htmlFor="indications">Indications / USPs — one per line</Label><Textarea id="indications" value={indications} onChange={(e) => setIndications(e.target.value)}/>
       <Label htmlFor="pack">Pack image</Label><Input id="pack" type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setPack(e.target.files?.[0] ?? null)}/>
       {product.pack_image_url && !pack && <div className="flex items-center gap-3"><img src={product.pack_image_url} alt="Current pack" className="size-20 object-contain"/><Button type="button" variant="ghost" onClick={() => setProduct({ ...product, pack_image_url: null })}><X/>Remove image</Button></div>}
+      <Label htmlFor="brand-color">Pack brand colour (optional)</Label>
+      <div className="flex flex-wrap items-center gap-2"><input type="color" aria-label="Pick pack brand colour" className="h-10 w-12 rounded-md border border-input bg-card" value={product.brand_color ?? "#0D9488"} onChange={(e) => setProduct({ ...product, brand_color: e.target.value.toUpperCase() })}/><Input id="brand-color" className="w-32" placeholder="#0D9488" value={product.brand_color ?? ""} onChange={(e) => setProduct({ ...product, brand_color: e.target.value.trim() || null })} aria-invalid={Boolean(product.brand_color && !HEX.test(product.brand_color))}/>
+        <Button type="button" variant="outline" size="sm" disabled={!pack && !product.pack_image_url} onClick={async () => { const src = pack ? URL.createObjectURL(pack) : product.pack_image_url!; try { const [main, accent] = await extractColors(src); const pick = accent !== main ? accent : main; setProduct((cur) => cur && { ...cur, brand_color: pick }); toast.success(`Pack colour set to ${pick}`); } catch { toast.error("Couldn't read colours from this pack image."); } finally { if (pack) URL.revokeObjectURL(src); } }}>Auto-extract from pack image</Button>
+        {product.brand_color && <Button type="button" variant="ghost" size="sm" onClick={() => setProduct({ ...product, brand_color: null })}><X/>Clear</Button>}</div>
       <div className="flex flex-wrap gap-4"><Label className="flex items-center gap-2"><Checkbox checked={product.is_top_product} onCheckedChange={(v) => setProduct({ ...product, is_top_product: v === true })}/>Top product</Label><Label className="flex items-center gap-2"><Checkbox checked={product.is_upcoming} onCheckedChange={(v) => setProduct({ ...product, is_upcoming: v === true })}/>Upcoming launch</Label></div><Button type="submit" disabled={busy}><Save/>Save product</Button>
     </form>}</DialogContent></Dialog>
     <Dialog open={Boolean(division)} onOpenChange={(v) => { if (!v && !busy) setDivision(null); }}><DialogContent><DialogHeader><DialogTitle>{division?.id ? "Edit division" : "Add division"}</DialogTitle></DialogHeader>{division && <form onSubmit={saveDivision} className="space-y-4">

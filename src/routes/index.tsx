@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { Switch } from "@/components/ui/switch";
+import { companySettingsQuery } from "@/lib/company";
 import { useServerFn } from "@tanstack/react-start";
 import {
   BookOpen,
@@ -98,6 +100,9 @@ function Studio() {
   const [specialty, setSpecialty] = useState<string>("General Physician");
   const [creativeType, setCreativeType] = useState<CreativeType>("slide");
   const [variations, setVariations] = useState(2);
+  const [matchPack, setMatchPack] = useState(true);
+  const [showPhone, setShowPhone] = useState(false);
+  const { data: company } = useQuery(companySettingsQuery);
   const [phase, setPhase] = useState<"idle" | "analyzing" | "generating" | "done">("idle");
   const [analysis, setAnalysis] = useState<PackAnalysis | null>(null);
   const [creatives, setCreatives] = useState<Creative[]>([]);
@@ -209,7 +214,7 @@ function Studio() {
               },
             },
           });
-          const withFooter = await addBioricaFooter(res.image);
+          const withFooter = await addBioricaFooter(res.image, { company, showPhone, accent: matchPack ? selectedProduct?.brand_color ?? undefined : undefined });
           setCreatives((prev) => prev.map((x) => (x.id === c.id ? { ...x, status: "done", image: withFooter, prompt: res.prompt } : x)));
         } catch (e) {
           setCreatives((prev) =>
@@ -412,6 +417,18 @@ function Studio() {
                 <p className="flex items-center gap-1 text-xs text-teal-strong">
                   <Check className="size-3.5" /> Linked to {selectedProduct.brand_name} in the catalog
                 </p>
+              )}
+              {selectedProduct?.brand_color && (
+                <Label className="flex items-center justify-between gap-3 rounded-md border border-border p-2.5 text-sm">
+                  <span className="flex items-center gap-2"><span className="size-4 rounded-full border border-border" style={{ background: selectedProduct.brand_color }} />Match palette to selected product pack</span>
+                  <Switch checked={matchPack} onCheckedChange={setMatchPack} />
+                </Label>
+              )}
+              {company?.company_phone && (
+                <Label className="flex items-center justify-between gap-3 rounded-md border border-border p-2.5 text-sm">
+                  Show company phone in footer
+                  <Switch checked={showPhone} onCheckedChange={setShowPhone} />
+                </Label>
               )}
             </div>
 

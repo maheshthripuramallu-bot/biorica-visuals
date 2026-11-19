@@ -8,7 +8,7 @@ export const getCatalog = createServerFn({ method: "GET" }).handler(async (): Pr
     sb.from("divisions").select("id, name, slug, therapy_tag, description, display_order").order("display_order"),
     sb
       .from("products")
-      .select("id, division_id, brand_name, composition, dosage_form, indications, pack_image_url, is_top_product, is_upcoming")
+      .select("id, division_id, brand_name, composition, dosage_form, indications, pack_image_url, is_top_product, is_upcoming, brand_color")
       .order("brand_name"),
     sb
       .from("visual_aids")

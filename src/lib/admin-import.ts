@@ -11,6 +11,7 @@ export const productInput = z.object({
   pack_image_url: z.string().nullable(),
   is_top_product: z.boolean(),
   is_upcoming: z.boolean(),
+  brand_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Brand colour must be a hex code like #0D9488").nullable().default(null),
 });
 
 export function parseProductCsv(text: string, divisions: Division[]) {

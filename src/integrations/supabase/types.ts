@@ -16,27 +16,48 @@ export type Database = {
     Tables: {
       company_branding: {
         Row: {
+          active_theme_id: string
           address: string
+          body_font: string
           company_name: string
+          company_phone: string
+          custom_accent_color: string
+          custom_header_color: string
+          custom_primary_color: string
           footer_text: string
+          heading_font: string
           id: string
           logo_url: string
           updated_at: string
           website: string
         }
         Insert: {
+          active_theme_id?: string
           address?: string
+          body_font?: string
           company_name?: string
+          company_phone?: string
+          custom_accent_color?: string
+          custom_header_color?: string
+          custom_primary_color?: string
           footer_text?: string
+          heading_font?: string
           id?: string
           logo_url?: string
           updated_at?: string
           website?: string
         }
         Update: {
+          active_theme_id?: string
           address?: string
+          body_font?: string
           company_name?: string
+          company_phone?: string
+          custom_accent_color?: string
+          custom_header_color?: string
+          custom_primary_color?: string
           footer_text?: string
+          heading_font?: string
           id?: string
           logo_url?: string
           updated_at?: string
@@ -106,6 +127,7 @@ export type Database = {
       }
       products: {
         Row: {
+          brand_color: string | null
           brand_name: string
           composition: string
           created_at: string
@@ -118,6 +140,7 @@ export type Database = {
           pack_image_url: string | null
         }
         Insert: {
+          brand_color?: string | null
           brand_name: string
           composition?: string
           created_at?: string
@@ -130,6 +153,7 @@ export type Database = {
           pack_image_url?: string | null
         }
         Update: {
+          brand_color?: string | null
           brand_name?: string
           composition?: string
           created_at?: string

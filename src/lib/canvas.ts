@@ -1,3 +1,4 @@
+import { canvasLogoHeight, fitLogo, type LogoSize } from "@/lib/logo";
 // Browser-only helpers for composing, compressing and downloading creatives.
 import type { Product } from "./catalog";
 
@@ -26,7 +27,7 @@ async function fontsReady() {
   }
 }
 
-export type FooterOptions = { company?: { company_name: string; website: string; footer_text: string; company_phone: string } | undefined; accent?: string | undefined; showPhone?: boolean; note?: string | undefined; print?: boolean };
+export type FooterOptions = { company?: { company_name: string; website: string; footer_text: string; company_phone: string } | undefined; accent?: string | undefined; showPhone?: boolean; note?: string | undefined; print?: boolean; logo?: HTMLImageElement | null; logoSize?: LogoSize };
 /** Darkens a hex colour to the given brightness factor (0–1). */
 export function shade(hex: string, f: number): string {
   const n = parseInt(hex.slice(1), 16);
@@ -41,19 +42,23 @@ function drawFooter(ctx: CanvasRenderingContext2D, w: number, h: number, o: Foot
   const name = o.company?.company_name || "Biorica Sciences Pvt Ltd";
   const site = [o.company?.website || "visuals.biorica.in", o.showPhone && o.company?.company_phone ? `Ph: ${o.company.company_phone}` : ""].filter(Boolean).join("  ·  ");
   const note = o.note ?? o.company?.footer_text ?? "For the use of Registered Medical Practitioners only";
-  const fh = Math.round(h * 0.085);
+  // Footer grows with the logo; the 4 sizes keep their ratio within a 16%-of-height cap.
+  const logoH = o.logo ? h * 0.16 * 0.78 * canvasLogoHeight(o.logoSize) / canvasLogoHeight("xl") : 0;
+  const fh = Math.round(Math.max(h * 0.085, logoH * 1.28));
   const y = h - fh;
   ctx.fillStyle = primary;
   ctx.fillRect(0, y, w, fh);
   ctx.fillStyle = accent;
   ctx.fillRect(0, y, w, Math.max(3, Math.round(fh * 0.06)));
   const pad = Math.round(w * 0.035);
-  const base = Math.round(fh * 0.3);
+  const base = Math.round(Math.min(fh, h * 0.085) * 0.3);
+  let nameX = pad;
+  if (o.logo) { const d = fitLogo(o.logo.width, o.logo.height, w * 0.7, logoH); ctx.drawImage(o.logo, pad, y + (fh - d.h) / 2 + fh * 0.03, d.w, d.h); nameX = pad + d.w + pad * 0.6; }
   ctx.textBaseline = "middle";
   ctx.fillStyle = "#FFFFFF";
   ctx.font = `700 ${base}px ${DISPLAY}`;
   ctx.textAlign = "left";
-  ctx.fillText(name, pad, y + fh / 2, w * 0.45);
+  ctx.fillText(name, nameX, y + fh / 2, Math.max(w * 0.12, w * 0.5 - nameX));
   ctx.textAlign = "right";
   ctx.font = `500 ${Math.round(base * 0.72)}px ${BODY}`;
   ctx.fillStyle = "rgba(255,255,255,0.85)";
@@ -65,7 +70,7 @@ function drawFooter(ctx: CanvasRenderingContext2D, w: number, h: number, o: Foot
 }
 
 /** Overlays the company footer on an AI-generated creative. */
-export async function addBioricaFooter(src: string, options: FooterOptions = {}): Promise<string> {
+export async function addBioricaFooter(src: string, options: FooterOptions & { logoUrl?: string } = {}): Promise<string> {
   await fontsReady();
   const img = await loadImage(src);
   const canvas = document.createElement("canvas");
@@ -76,7 +81,8 @@ export async function addBioricaFooter(src: string, options: FooterOptions = {})
   if (!ctx) throw new Error("Your browser couldn't create the image canvas.");
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  drawFooter(ctx, canvas.width, canvas.height, options);
+  const logo = options.logoUrl ? await loadImage(options.logoUrl).catch(() => null) : null;
+  drawFooter(ctx, canvas.width, canvas.height, { ...options, logo });
   const url = canvas.toDataURL("image/png");
   return options.print ? withPngDpi(url, 300) : url;
 }

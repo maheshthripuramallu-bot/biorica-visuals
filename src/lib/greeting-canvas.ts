@@ -1,10 +1,10 @@
-import { fitLogo } from "@/lib/logo";
+import { canvasLogoHeight, fitLogo, type LogoSize } from "@/lib/logo";
 import { loadImage } from "./canvas";
 import { DEFAULT_COMPANY, type CompanySettings } from "./company";
 import { greetingDimensions, LANGUAGE_FONTS, type Greeting } from "./greetings";
 
 // Canvas reads the same semantic palette as the page; typography is composed locally, never by AI.
-export async function renderGreeting(g: Greeting, logo = "", background = "", variation = 0, company: CompanySettings = DEFAULT_COMPANY, brandAccent = "", logoScale = 1) {
+export async function renderGreeting(g: Greeting, logo = "", background = "", variation = 0, company: CompanySettings = DEFAULT_COMPANY, brandAccent = "", logoSize: LogoSize = "medium") {
   await document.fonts.ready;
   const family = `"${LANGUAGE_FONTS[g.language]}", "Plus Jakarta Sans", sans-serif`;
   await Promise.all([document.fonts.load(`500 32px ${family}`, g.headline + g.message + g.doctorName), document.fonts.load(`700 32px ${family}`, g.headline + g.doctorName)]);
@@ -66,12 +66,16 @@ export async function renderGreeting(g: Greeting, logo = "", background = "", va
     }
   }
   // Footer band: logo on the left, company details left-aligned and auto-shrunk so nothing clips.
-  const top = h * (g.products.length ? .9 : .87), bottom = h * .962, left = pad * .65, right = w - pad * .65, bandH = bottom - top;
+  // Band grows with the chosen logo height so Large / Extra Large never squeeze into the strip.
+  // Space below the message/products is fixed, so the four sizes keep their Small:Medium:Large:XL ratio inside it.
+  const bottom = h * .962, maxBand = h * (g.products.length ? .067 : .125);
+  const logoH = maxBand * .8 * canvasLogoHeight(logoSize) / canvasLogoHeight("xl");
+  const bandH = Math.max(h * (g.products.length ? .055 : .08), logoH * 1.25), top = bottom - bandH, left = pad * .65, right = w - pad * .65;
   ctx.fillStyle = token("--greeting-brand-paper"); ctx.fillRect(left, top, right - left, bandH);
   const inset = bandH * .12; let textX = left + inset * 1.5;
   try {
-    const image = await loadImage(logo || "/biorica-logo.png"); const box = bandH - inset * 2;
-    const { w: lw, h: lh } = fitLogo(image.width, image.height, Math.min(box * 1.6, w * .3) / logoScale, Math.min(box, bandH * .96 / logoScale), logoScale);
+    const image = await loadImage(logo || "/biorica-logo.png"); 
+    const { w: lw, h: lh } = fitLogo(image.width, image.height, w * .35, Math.min(logoH, bandH - inset * 2));
     ctx.drawImage(image, textX, top + (bandH - lh) / 2, lw, lh); textX += lw + inset * 1.5;
   } catch { /* text-only footer */ }
   const maxW = right - inset * 1.5 - textX;

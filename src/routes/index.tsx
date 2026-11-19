@@ -3,8 +3,8 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Switch } from "@/components/ui/switch";
 import { asFinish, companySettingsQuery } from "@/lib/company";
-import { applyLogoFinish, resolveFinish, type LogoFinishChoice } from "@/lib/logo";
-import { LogoFinishSelect } from "@/components/logo-finish-select";
+import { applyLogoFinish, asLogoSize, resolveFinish, type LogoFinishChoice, type LogoSize } from "@/lib/logo";
+import { LogoFinishSelect, LogoSizeSelect } from "@/components/logo-finish-select";
 import { useServerFn } from "@tanstack/react-start";
 import {
   BookOpen,
@@ -115,6 +115,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [artDirection, setArtDirection] = useState<ArtDirection>("mnc");
   const [logoFinish, setLogoFinish] = useState<LogoFinishChoice>("auto");
+  const [pickedSize, setLogoSize] = useState<LogoSize | null>(null);
   const [compliance, setCompliance] = useState<ComplianceFooter>("rmp");
   const [quality, setQuality] = useState<"fast" | "print">("fast");
   const { data: company } = useQuery(companySettingsQuery);
@@ -260,6 +261,9 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
         /* footer still carries branding */
       }
     }
+    const logoSize = pickedSize ?? asLogoSize(company?.logo_size);
+    // Footer bar is dark: "auto" shows the transparent logo in white.
+    const footerLogo = await applyLogoFinish(logoUrl || "/biorica-logo.png", resolveFinish(logoFinish, asFinish(company?.logo_finish), true)).catch(() => "");
     const note = COMPLIANCE_FOOTERS.find((c) => c.value === compliance)?.text ?? "";
     const accent = matchPack && mode !== "portfolio" ? selectedProduct?.brand_color ?? undefined : undefined;
     await Promise.all(
@@ -293,7 +297,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
               },
             },
           });
-          const withFooter = await addBioricaFooter(res.image, { company, showPhone, accent, note, print: quality === "print" });
+          const withFooter = await addBioricaFooter(res.image, { company, showPhone, accent, note, print: quality === "print", logoUrl: footerLogo, logoSize });
           setCreatives((prev) => prev.map((x) => (x.id === c.id ? { ...x, status: "done", image: withFooter, prompt: res.prompt } : x)));
         } catch (e) {
           setCreatives((prev) =>
@@ -550,7 +554,8 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
                 <SelectContent>{ART_DIRECTIONS.map((a) => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            {creativeType === "case_poster" && <LogoFinishSelect id="studio-logo-finish" value={logoFinish} onChange={setLogoFinish} />}
+            <LogoFinishSelect id="studio-logo-finish" value={logoFinish} onChange={setLogoFinish} />
+            <LogoSizeSelect value={pickedSize ?? asLogoSize(company?.logo_size)} onChange={setLogoSize} />
             <div className="space-y-1.5">
               <Label>Compliance footer</Label>
               <Select value={compliance} onValueChange={(v) => setCompliance(v as ComplianceFooter)}>

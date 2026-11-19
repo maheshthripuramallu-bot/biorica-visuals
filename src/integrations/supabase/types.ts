@@ -28,6 +28,7 @@ export type Database = {
           heading_font: string
           id: string
           logo_finish: string
+          logo_size: string
           logo_url: string
           updated_at: string
           website: string
@@ -45,6 +46,7 @@ export type Database = {
           heading_font?: string
           id?: string
           logo_finish?: string
+          logo_size?: string
           logo_url?: string
           updated_at?: string
           website?: string
@@ -62,6 +64,7 @@ export type Database = {
           heading_font?: string
           id?: string
           logo_finish?: string
+          logo_size?: string
           logo_url?: string
           updated_at?: string
           website?: string

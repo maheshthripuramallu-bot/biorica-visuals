@@ -12,7 +12,7 @@ export function LogoFinishSelect({ value, onChange, id = "logo-finish" }: { valu
 }
 
 export function LogoSizeSelect({ value, onChange }: { value: LogoSize; onChange: (v: LogoSize) => void }) {
-  return <div className="space-y-1.5"><Label>Logo size</Label><div role="radiogroup" aria-label="Logo size" className="grid grid-cols-3 rounded-lg border border-border bg-muted p-1">
+  return <div className="space-y-1.5"><Label>Logo size</Label><div role="radiogroup" aria-label="Logo size" className="grid grid-cols-4 gap-0.5 rounded-lg border border-border bg-muted p-1">
     {LOGO_SIZES.map((s) => <button key={s.value} type="button" role="radio" aria-checked={value === s.value} onClick={() => onChange(s.value)} className={cn("min-h-9 rounded-md px-1 text-xs font-semibold", value === s.value ? "bg-card text-primary shadow-card" : "text-muted-foreground")}>{s.label}</button>)}
   </div></div>;
 }

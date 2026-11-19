@@ -1,0 +1,2 @@
+ALTER TABLE public.company_branding ADD COLUMN IF NOT EXISTS logo_size text NOT NULL DEFAULT 'medium';
+ALTER TABLE public.company_branding ADD CONSTRAINT company_branding_logo_size_check CHECK (logo_size IN ('small','medium','large','xl'));

@@ -5,6 +5,20 @@ import { Button } from "@/components/ui/button";
 import { PackImage } from "@/components/pack-image";
 import type { Product } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { getCompanyLogo } from "@/lib/greetings.functions";
+import { companySettingsQuery, DEFAULT_COMPANY } from "@/lib/company";
+import { applyLogoFinish, asLogoSize, canvasLogoHeight, FALLBACK_LOGO } from "@/lib/logo";
+
+/** Stage is dark, so the transparent logo shows white; on-screen height is a fixed fraction of the canvas size table. */
+function FlipbookLogo() {
+  const { data: raw } = useQuery({ queryKey: ["company-logo"], queryFn: () => getCompanyLogo(), staleTime: 60_000 });
+  const { data: company = DEFAULT_COMPANY } = useQuery(companySettingsQuery);
+  const { data: src } = useQuery({ queryKey: ["flipbook-logo", raw], queryFn: () => applyLogoFinish(raw || FALLBACK_LOGO, "white") });
+  const h = canvasLogoHeight(asLogoSize(company.logo_size)) / 2.5;
+  if (!src) return null;
+  return <img src={src} alt="Biorica Sciences" style={{ "--logo-h": `${h}px` } as CSSProperties} className="h-[calc(var(--logo-h)*0.7)] w-auto max-w-[40vw] shrink-0 bg-transparent object-contain sm:h-[var(--logo-h)]" />;
+}
 
 export type Slide = {
   key: string;
@@ -155,6 +169,7 @@ export function FlipbookViewer({
         <Button variant="stage" size="icon" onClick={onClose} aria-label="Close flipbook">
           <X />
         </Button>
+        <FlipbookLogo />
         <div className="min-w-0 flex-1 px-1">
           <p className="truncate font-display text-sm font-bold sm:text-base">{title}</p>
           <p className="truncate text-xs text-stage-muted">

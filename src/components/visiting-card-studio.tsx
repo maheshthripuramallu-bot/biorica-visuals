@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 import { applyLogoFinish, resolveFinish, type LogoFinishChoice } from "@/lib/logo";
 import { asFinish } from "@/lib/company";
 import { LogoFinishSelect, LogoSizeSelect } from "@/components/logo-finish-select";
-import { logoScale, type LogoSize } from "@/lib/logo";
+import { asLogoSize, cardLogoHeight, type LogoSize } from "@/lib/logo";
 
 const DEFAULT_TAGLINE = "Advancing Science, Enriching Lives";
 type Saved = { id: string; full_name: string; designation: string; details: Json; updated_at: string };
@@ -39,7 +39,7 @@ export function VisitingCardStudio() {
   const [corners, setCorners] = useState<CornerStyle>("rounded");
   const [thumbs, setThumbs] = useState<Partial<Record<CardTemplate, string>>>({});
   const [preview, setPreview] = useState({ front: "", back: "" });
-  const [logoSize, setLogoSize] = useState<LogoSize>("medium");
+  const [pickedSize, setLogoSize] = useState<LogoSize | null>(null); const logoSize = pickedSize ?? asLogoSize(company.logo_size);
   const [finish, setFinish] = useState<LogoFinishChoice>("auto");
   const [logos, setLogos] = useState<{ light: string; dark: string } | null>(null);
   const [logoColors, setLogoColors] = useState<[string, string] | null>(null);
@@ -59,7 +59,7 @@ export function VisitingCardStudio() {
 
   const brand: CardBrand = useMemo(() => {
     const t = resolveTheme(company);
-    return { companyName: company.company_name || DEFAULT_COMPANY.company_name, tagline, logo: logos?.light ?? logoSrc, logoOnDark: logos?.dark ?? logoSrc, primary: t.primary, accent: t.accent, logoPrimary: logoColors?.[0] ?? company.custom_primary_color, logoAccent: logoColors?.[1] ?? company.custom_accent_color, font: t.heading, logoScale: logoScale(logoSize) };
+    return { companyName: company.company_name || DEFAULT_COMPANY.company_name, tagline, logo: logos?.light ?? logoSrc, logoOnDark: logos?.dark ?? logoSrc, primary: t.primary, accent: t.accent, logoPrimary: logoColors?.[0] ?? company.custom_primary_color, logoAccent: logoColors?.[1] ?? company.custom_accent_color, font: t.heading, logoHeight: cardLogoHeight(logoSize) };
   }, [company, tagline, logoSrc, logoColors, logos, logoSize]);
 
   useEffect(() => {

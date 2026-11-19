@@ -8,7 +8,7 @@ import { Download, History, Loader2, Save, Share2, Sparkles, Trash2, RotateCcw, 
 import { toast } from "sonner";
 import { applyLogoFinish, FALLBACK_LOGO, resolveFinish, type LogoFinishChoice } from "@/lib/logo";
 import { LogoFinishSelect, LogoSizeSelect } from "@/components/logo-finish-select";
-import { logoScale, type LogoSize } from "@/lib/logo";
+import { asLogoSize, type LogoSize } from "@/lib/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,7 +30,7 @@ const selectClass = "h-11 w-full rounded-md border border-input bg-card px-3 tex
 export function GreetingStudio() {
   const { data: auth } = useAuth(); const qc = useQueryClient();
   const { data: rawLogo = "" } = useQuery(companyLogoQuery); const { data: company = DEFAULT_COMPANY } = useQuery(companySettingsQuery);
-  const [logoFinish, setLogoFinish] = useState<LogoFinishChoice>("auto"); const [logo, setLogo] = useState(""); const [logoSize, setLogoSize] = useState<LogoSize>("medium");
+  const [logoFinish, setLogoFinish] = useState<LogoFinishChoice>("auto"); const [logo, setLogo] = useState(""); const [pickedSize, setLogoSize] = useState<LogoSize | null>(null); const logoSize = pickedSize ?? asLogoSize(company.logo_size);
   // Footer band sits on light paper, so "auto" keeps the Admin default.
   useEffect(() => { let live = true; applyLogoFinish(rawLogo || FALLBACK_LOGO, resolveFinish(logoFinish, asFinish(company.logo_finish), false)).then((l) => { if (live) setLogo(l); }); return () => { live = false; }; }, [rawLogo, logoFinish, company.logo_finish]);
   const { data: catalog } = useSuspenseQuery(catalogQuery);
@@ -51,7 +51,7 @@ export function GreetingStudio() {
   }, staleTime: 5 * 60_000 });
   useEffect(() => {
     let active = true;
-    const timer = setTimeout(() => { renderGreeting(g, logo, "", 0, company, "", logoScale(logoSize)).then((img) => { if (active) { setPreview(img); setPreviewError(""); } }).catch(() => { if (active) setPreviewError("Couldn't load the portrait or logo. Please choose another image."); }); }, 200);
+    const timer = setTimeout(() => { renderGreeting(g, logo, "", 0, company, "", logoSize).then((img) => { if (active) { setPreview(img); setPreviewError(""); } }).catch(() => { if (active) setPreviewError("Couldn't load the portrait or logo. Please choose another image."); }); }, 200);
     return () => { active = false; clearTimeout(timer); };
   }, [g, logo, company, logoSize]);
   function update<K extends keyof Greeting>(key: K, value: Greeting[K]) { setG((prev) => ({ ...prev, [key]: value })); }
@@ -66,7 +66,7 @@ export function GreetingStudio() {
       for (let i = 0; i < variationInput.parse(count); i++) {
         setProgress(`Creating variation ${i + 1} of ${count}…`);
         const background = await createBackground({ data: { occasion: current.occasion, style: current.style, format: current.format, variation: i } });
-        const image = await renderGreeting(current, logo, background, i, company, "", logoScale(logoSize));
+        const image = await renderGreeting(current, logo, background, i, company, "", logoSize);
         setCards((prev) => [...prev, { id: crypto.randomUUID(), greeting: current, image, saved: false }]);
       }
       output.current?.scrollIntoView({ behavior: "smooth", block: "start" });

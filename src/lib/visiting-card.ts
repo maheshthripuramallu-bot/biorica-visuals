@@ -1,4 +1,5 @@
 import { fitLogo } from "@/lib/logo";
+const LOGO_MAX_W = 0.75;
 import QRCode from "qrcode";
 
 export const CARD_W = 1050; // 3.5in @ 300 DPI
@@ -32,7 +33,7 @@ export type VisitingCard = {
   website: string; address: string; showPhoto: boolean; photo: string; qr: QrTarget; brands: string[]; template: CardTemplate;
 };
 /** logo = finish for light surfaces, logoOnDark = finish for dark/coloured surfaces (both transparent, never boxed). */
-export type CardBrand = { companyName: string; tagline: string; logo: string; logoOnDark: string; primary: string; accent: string; logoPrimary: string; logoAccent: string; font: string; logoScale?: number };
+export type CardBrand = { companyName: string; tagline: string; logo: string; logoOnDark: string; primary: string; accent: string; logoPrimary: string; logoAccent: string; font: string; logoHeight?: number };
 
 const esc = (s: string) => s.replace(/([\\;,])/g, "\\$1").replace(/\n/g, "\\n");
 export const digits = (s: string) => s.replace(/[^\d+]/g, "");
@@ -97,10 +98,12 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, max: number) {
   for (const w of text.split(/\s+/)) { const t = line ? `${line} ${w}` : w; if (ctx.measureText(t).width > max && line) { lines.push(line); line = w; } else line = t; }
   if (line) lines.push(line); return lines;
 }
-/** Contain-fit, never wider than 45% of the card; scale = Small/Medium/Large choice. */
-function drawLogo(ctx: CanvasRenderingContext2D, img: HTMLImageElement | null, x: number, y: number, maxW: number, maxH: number, scale = 1, center = false) {
-  if (!img) return 0; const cap = ctx.canvas.width * 0.45; const { w, h } = fitLogo(img.width, img.height, Math.min(maxW, cap / scale), maxH, scale);
-  ctx.drawImage(img, center ? x - w / 2 : x, y, w, h); return w;
+/** Contain-fit at the chosen pixel height, never wider than 75% of the card width (or the given limit). */
+function logoDims(img: HTMLImageElement | null, cardW: number, targetH: number, maxW = Infinity) {
+  if (!img) return { w: 0, h: 0 }; return fitLogo(img.width, img.height, Math.min(cardW * LOGO_MAX_W, maxW), targetH);
+}
+function drawLogo(ctx: CanvasRenderingContext2D, img: HTMLImageElement | null, x: number, y: number, d: { w: number; h: number }, center = false) {
+  if (img && d.w) ctx.drawImage(img, center ? x - d.w / 2 : x, y, d.w, d.h); return d;
 }
 function icon(ctx: CanvasRenderingContext2D, x: number, y: number, label: string, color: string, fg: string) {
   ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, 15, 0, Math.PI * 2); ctx.fill();
@@ -143,11 +146,11 @@ async function drawFront(ctx: CanvasRenderingContext2D, c: VisitingCard, b: Card
   const onDark = p.dark || NARROW.has(c.template);
   const [logo, photo] = await Promise.all([load(onDark ? b.logoOnDark : b.logo), c.showPhoto ? load(c.photo) : Promise.resolve(null)]);
   const left = c.template === "split" ? 90 : c.template === "gradient" ? 80 : 64; const dual = NARROW.has(c.template); const big = c.template === "colorblock";
-  const logoX = CARD_W - 290;
-  drawLogo(ctx, logo, big ? CARD_W * 0.69 : logoX + 40, big ? 60 : 48, big ? 280 : 190, 120, b.logoScale);
+  const ld = logoDims(logo, CARD_W, b.logoHeight ?? 105, CARD_W * 0.45); const logoX = CARD_W - 56 - ld.w;
+  drawLogo(ctx, logo, logoX, big ? 40 : 36, ld);
   let x = left;
   if (photo) { const r = 62, cx = left + r, cy = 120; ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip(); const s = Math.max((2 * r) / photo.width, (2 * r) / photo.height); ctx.drawImage(photo, cx - (photo.width * s) / 2, cy - (photo.height * s) / 2, photo.width * s, photo.height * s); ctx.restore(); ctx.strokeStyle = p.accent; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke(); x = left + 2 * r + 28; }
-  const nameMax = (dual ? CARD_W * 0.55 : logoX - 30) - x;
+  const nameMax = Math.max(240, Math.min(dual ? CARD_W * 0.55 : CARD_W, logoX - 30) - x);
   ctx.fillStyle = p.text; const ny = big ? 18 : 0; fit(ctx, c.fullName || "Your Name", nameMax, big ? 74 : 52, 800, b.font); ctx.fillText(c.fullName || "Your Name", x, 112 + ny);
   ctx.fillStyle = p.accent; fit(ctx, c.designation, nameMax, 28, 600, b.font); ctx.fillText(c.designation, x, 152 + ny * 2);
   if (c.territory) { ctx.fillStyle = p.muted; fit(ctx, c.territory, nameMax, 24, 500, b.font); ctx.fillText(c.territory, x, 186 + ny * 2); }
@@ -177,11 +180,11 @@ async function drawBack(ctx: CanvasRenderingContext2D, c: VisitingCard, b: CardB
   ctx.fillStyle = NARROW.has(c.template) ? "#FFFFFF" : p.muted; ctx.font = `600 19px "${b.font}", sans-serif`; ctx.textAlign = "center";
   ctx.fillText(c.qr === "vcard" ? "Scan to save contact" : c.qr === "whatsapp" ? "Scan to chat on WhatsApp" : "visuals.biorica.in", qx + qs / 2, qy + qs + 42); ctx.textAlign = "left";
   const textMax = qx - left - 60;
-  drawLogo(ctx, logo, left, 70, Math.min(300, textMax), 100, b.logoScale);
-  ctx.fillStyle = p.text; fit(ctx, b.companyName, textMax, 32, 800, b.font); ctx.fillText(b.companyName, left, 222);
-  if (b.tagline) { ctx.fillStyle = p.accent; ctx.font = `italic 500 21px "${b.font}", sans-serif`; wrap(ctx, b.tagline, textMax).slice(0, 2).forEach((l, i) => ctx.fillText(l, left, 256 + i * 26)); }
+  const ld = drawLogo(ctx, logo, left, 50, logoDims(logo, CARD_W, b.logoHeight ?? 105, textMax)); const dy = Math.max(0, ld.h - 120);
+  ctx.fillStyle = p.text; fit(ctx, b.companyName, textMax, 32, 800, b.font); ctx.fillText(b.companyName, left, 222 + dy);
+  if (b.tagline) { ctx.fillStyle = p.accent; ctx.font = `italic 500 21px "${b.font}", sans-serif`; wrap(ctx, b.tagline, textMax).slice(0, c.brands.length > 3 && dy ? 1 : 2).forEach((l, i) => ctx.fillText(l, left, 256 + dy + i * 26)); }
   if (c.brands.length) {
-    const top = 360; ctx.fillStyle = p.muted; ctx.font = `700 16px "${b.font}", sans-serif`; ctx.fillText("FEATURED BRANDS", left, top);
+    const top = 360 + Math.min(dy, c.brands.length > 3 ? 20 : 40); ctx.fillStyle = p.muted; ctx.font = `700 16px "${b.font}", sans-serif`; ctx.fillText("FEATURED BRANDS", left, top);
     const cols = 3, gw = (qx - 30 - left) / cols, gh = 50;
     c.brands.slice(0, MAX_CARD_BRANDS).forEach((name, i) => {
       const bx = left + (i % cols) * gw, by = top + 20 + Math.floor(i / cols) * (gh + 12);
@@ -202,7 +205,7 @@ async function drawFrontV(ctx: CanvasRenderingContext2D, c: VisitingCard, b: Car
   const W = CARD_H, H = CARD_W, p = palette("split", b); ctx.fillStyle = "#FFFFFF"; ctx.fillRect(-BLEED, -BLEED, W + 2 * BLEED, H + 2 * BLEED);
   ctx.fillStyle = p.bg2; ctx.fillRect(-BLEED, H - 22, W + 2 * BLEED, 22 + BLEED); ctx.fillStyle = p.strip; ctx.fillRect(-BLEED, H - 30, W + 2 * BLEED, 8);
   const [logo, photo] = await Promise.all([load(b.logo), c.showPhoto ? load(c.photo) : Promise.resolve(null)]);
-  drawLogo(ctx, logo, W / 2, 70, 340, 140, b.logoScale, true);
+  drawLogo(ctx, logo, W / 2, 70 + Math.max(0, 140 - (b.logoHeight ?? 105)) / 2, logoDims(logo, W, Math.min(b.logoHeight ?? 105, 175)), true);
   let y = 270; ctx.strokeStyle = p.accent; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(W / 2 - 120, y); ctx.lineTo(W / 2 + 120, y); ctx.stroke(); y += 40;
   if (photo) { const r = 64, cx = W / 2, cy = y + r; ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip(); const s = Math.max((2 * r) / photo.width, (2 * r) / photo.height); ctx.drawImage(photo, cx - (photo.width * s) / 2, cy - (photo.height * s) / 2, photo.width * s, photo.height * s); ctx.restore(); ctx.strokeStyle = p.accent; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke(); y += 2 * r + 20; }
   ctx.textAlign = "center"; ctx.fillStyle = p.text; fit(ctx, c.fullName || "Your Name", W - 100, 52, 800, b.font); ctx.fillText(c.fullName || "Your Name", W / 2, y + 50);
@@ -223,7 +226,7 @@ async function drawBackV(ctx: CanvasRenderingContext2D, c: VisitingCard, b: Card
   const W = CARD_H, H = CARD_W, p = palette("split", b); ctx.fillStyle = "#FFFFFF"; ctx.fillRect(-BLEED, -BLEED, W + 2 * BLEED, H + 2 * BLEED);
   ctx.fillStyle = p.bg2; ctx.fillRect(-BLEED, -BLEED, W + 2 * BLEED, 290 + BLEED); ctx.fillStyle = p.strip; ctx.fillRect(-BLEED, 290, W + 2 * BLEED, 8);
   const [logo, qr] = await Promise.all([load(b.logoOnDark), QRCode.toDataURL(qrText, { margin: 1, width: 700, errorCorrectionLevel: "M", color: { dark: "#0F172A", light: "#FFFFFF" } }).then(load)]);
-  drawLogo(ctx, logo, W / 2, 56, 260, 90, b.logoScale, true);
+  drawLogo(ctx, logo, W / 2, 40, logoDims(logo, W, Math.min(b.logoHeight ?? 105, 130)), true);
   ctx.textAlign = "center"; ctx.fillStyle = "#FFFFFF"; fit(ctx, b.companyName, W - 80, 30, 800, b.font); ctx.fillText(b.companyName, W / 2, 210);
   if (b.tagline) { ctx.font = `italic 500 20px "${b.font}", sans-serif`; ctx.fillText(wrap(ctx, b.tagline, W - 80)[0] ?? "", W / 2, 248); }
   const qs = 320, qx = (W - qs) / 2, qy = 350; ctx.fillStyle = "#FFFFFF"; ctx.strokeStyle = "#E2E8F0"; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(qx - 16, qy - 16, qs + 32, qs + 32, 18); ctx.fill(); ctx.stroke(); if (qr) ctx.drawImage(qr, qx, qy, qs, qs);

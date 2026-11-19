@@ -12,5 +12,13 @@ describe("logo transparency", () => {
 import { fitLogo as fit, logoScale as ls } from "@/lib/logo";
 describe("logo sizing", () => {
   it("keeps aspect ratio inside the box", () => { const r = fit(400, 100, 200, 200); expect(r).toEqual({ w: 200, h: 50 }); });
-  it("Small/Medium/Large scale", () => { expect([ls("small"), ls("medium"), ls("large")]).toEqual([0.8, 1, 1.2]); });
+  it("Medium is the base scale", () => expect(ls("medium")).toBe(1));
+});
+
+import { canvasLogoHeight, cardLogoHeight, LOGO_SIZES, opaqueBounds } from "@/lib/logo";
+describe("4-tier logo sizes", () => {
+  it("offers Small, Medium, Large, Extra Large", () => expect(LOGO_SIZES.map((s) => s.label)).toEqual(["Small", "Medium", "Large", "Extra Large"]));
+  it("visiting card heights 80/105/130/160", () => expect((["small", "medium", "large", "xl"] as const).map(cardLogoHeight)).toEqual([80, 105, 130, 160]));
+  it("canvas heights 120/150/185/230 at 1080 px", () => expect((["small", "medium", "large", "xl"] as const).map((s) => canvasLogoHeight(s))).toEqual([120, 150, 185, 230]));
+  it("trims transparent margins", () => { const p = new Array(4 * 4 * 4).fill(0); p[(1 * 4 + 2) * 4 + 3] = 255; expect(opaqueBounds(p, 4, 4)).toEqual({ x: 2, y: 1, w: 1, h: 1 }); });
 });

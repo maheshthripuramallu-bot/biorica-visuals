@@ -12,7 +12,7 @@ import { companyLogoQuery } from "./greeting-studio";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { dataUrlToBlob } from "@/lib/canvas";
-import { DEFAULT_WHITE_THRESHOLD, LOGO_FINISHES, removeWhiteBackground } from "@/lib/logo";
+import { asLogoSize, DEFAULT_WHITE_THRESHOLD, LOGO_FINISHES, LOGO_SIZES, removeWhiteBackground, trimTransparent } from "@/lib/logo";
 import { asFinish, companySettingsQuery, DEFAULT_COMPANY, type CompanySettings } from "@/lib/company";
 
 function CompanyDetails() {
@@ -74,11 +74,21 @@ function LogoFinishDefault() {
     <p className="text-xs text-muted-foreground">Studios can override this per design. On dark surfaces "Auto" shows the logo in white — never on a white box.</p></div>;
 }
 
+function LogoSizeDefault() {
+  const { data = DEFAULT_COMPANY } = useQuery(companySettingsQuery); const qc = useQueryClient(); const [busy, setBusy] = useState(false);
+  return <div className="space-y-1.5"><Label htmlFor="logo-size-default">Default logo size</Label>
+    <select id="logo-size-default" disabled={busy} value={asLogoSize(data.logo_size)} className="h-10 w-full rounded-md border border-input bg-card px-3 text-sm" onChange={async (e) => {
+      setBusy(true); const { error } = await supabase.from("company_branding").upsert({ id: "official", logo_size: e.target.value, updated_at: new Date().toISOString() });
+      setBusy(false); if (error) toast.error("Couldn't save the logo size."); else { await qc.invalidateQueries({ queryKey: ["company-settings"] }); toast.success("Logo size saved"); }
+    }}>{LOGO_SIZES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}</select>
+    <p className="text-xs text-muted-foreground">Starting size in every studio and the flipbook. Each design can still pick its own size.</p></div>;
+}
+
 export function CompanyBranding() {
   const { data: logo } = useQuery(companyLogoQuery); const qc = useQueryClient();
   const [source, setSource] = useState(""); const [threshold, setThreshold] = useState(DEFAULT_WHITE_THRESHOLD);
   const [cleaned, setCleaned] = useState(""); const [busy, setBusy] = useState(false);
-  useEffect(() => { if (!source) { setCleaned(""); return; } let live = true; const id = setTimeout(() => { removeWhiteBackground(source, threshold).then((d) => { if (live) setCleaned(d); }).catch(() => toast.error("Couldn't read that image.")); }, 120); return () => { live = false; clearTimeout(id); }; }, [source, threshold]);
+  useEffect(() => { if (!source) { setCleaned(""); return; } let live = true; const id = setTimeout(() => { removeWhiteBackground(source, threshold).then(trimTransparent).then((d) => { if (live) setCleaned(d); }).catch(() => toast.error("Couldn't read that image.")); }, 120); return () => { live = false; clearTimeout(id); }; }, [source, threshold]);
   return <div className="space-y-10"><CompanyDetails/><BrandTheme/><form className="max-w-xl space-y-4" onSubmit={async (event) => {
     event.preventDefault(); if (!cleaned) return;
     setBusy(true); const path = `branding/${randomFileName("png")}`; let uploaded = false;
@@ -88,12 +98,12 @@ export function CompanyBranding() {
       await qc.invalidateQueries({ queryKey: ["company-logo"] }); setSource(""); toast.success("Transparent company logo saved");
     } catch { if (uploaded) await supabase.storage.from("pack-images").remove([path]); toast.error("Couldn't update the company logo."); }
     finally { setBusy(false); }
-  }}><h2 className="text-xl font-bold">Company logo</h2><p className="text-sm text-muted-foreground">Upload a PNG or JPG. White backgrounds are removed automatically so the logo sits cleanly on every surface.</p>
+  }}><h2 className="text-xl font-bold">Company logo</h2><p className="text-sm text-muted-foreground">Upload a PNG or JPG. White backgrounds and empty edges are removed automatically so the logo sits cleanly on every surface.</p>
     <div aria-label="Logo transparency preview" className="checkerboard flex h-36 items-center justify-center rounded-lg border border-border p-4">{(cleaned || logo) ? <img src={cleaned || logo} alt="Company logo preview" className="max-h-full max-w-full object-contain"/> : <span className="font-bold text-primary">Biorica Sciences Pvt. Ltd.</span>}</div>
     <Label htmlFor="company-logo">Logo file (PNG or JPG)</Label><Input key={source ? "chosen" : "empty"} id="company-logo" type="file" accept="image/png,image/jpeg" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; if (f.size > 5_000_000) { toast.error("Choose a logo under 5 MB."); return; } const r = new FileReader(); r.onload = () => setSource(String(r.result)); r.readAsDataURL(f); }}/>
     {source && <div className="space-y-2"><div className="flex items-center justify-between"><Label htmlFor="logo-threshold">White removal threshold</Label><span className="text-xs tabular-nums text-muted-foreground">{threshold}</span></div>
       <Slider id="logo-threshold" min={200} max={255} step={1} value={[threshold]} onValueChange={([t]) => setThreshold(t ?? DEFAULT_WHITE_THRESHOLD)}/>
       <p className="text-xs text-muted-foreground">Lower removes more off-white; raise it if parts of the logo disappear.</p></div>}
     <Button type="submit" variant="teal" disabled={busy || !cleaned}>{busy ? <Loader2 className="animate-spin"/> : <FileUp/>}Save transparent logo</Button>
-    <LogoFinishDefault/></form></div>;
+    <LogoFinishDefault/><LogoSizeDefault/></form></div>;
 }

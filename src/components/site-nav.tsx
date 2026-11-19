@@ -24,7 +24,7 @@ export function BrandMark({ className }: { className?: string }) {
   const { data: logo } = useQuery(companyLogoQuery);
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <img src={logo || FALLBACK_LOGO} alt="Biorica Sciences" className="h-auto max-h-9 w-auto max-w-32 bg-transparent object-contain md:max-h-11 md:max-w-40" />
+      <img src={logo || FALLBACK_LOGO} alt="Biorica Sciences" className="h-auto max-h-14 w-auto max-w-40 bg-transparent object-contain md:max-h-[68px] md:max-w-52" />
       <span className="leading-none">
         <span className="block font-display text-[15px] font-extrabold tracking-tight text-primary">Biorica</span>
         <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-teal">Visuals</span>
@@ -48,7 +48,7 @@ export function TopNav() {
   const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-header/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6">
+      <div className="mx-auto flex h-[72px] max-w-7xl md:h-20 items-center gap-4 px-4 sm:px-6">
         <Link to="/" aria-label="Biorica Visuals home" className="shrink-0">
           <BrandMark />
         </Link>

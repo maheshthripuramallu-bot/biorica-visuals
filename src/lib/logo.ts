@@ -51,13 +51,33 @@ export function applyLogoFinish(src: string, finish: LogoFinish): Promise<string
 }
 
 export const LOGO_SIZES = [
-  { value: "small", label: "Small", scale: 0.8 },
-  { value: "medium", label: "Medium", scale: 1 },
-  { value: "large", label: "Large", scale: 1.2 },
+  { value: "small", label: "Small", card: 80, canvas: 120 },
+  { value: "medium", label: "Medium", card: 105, canvas: 150 },
+  { value: "large", label: "Large", card: 130, canvas: 185 },
+  { value: "xl", label: "Extra Large", card: 160, canvas: 230 },
 ] as const;
 export type LogoSize = (typeof LOGO_SIZES)[number]["value"];
-export const logoScale = (s: LogoSize = "medium") => LOGO_SIZES.find((x) => x.value === s)?.scale ?? 1;
+export const asLogoSize = (v: string | undefined): LogoSize => (LOGO_SIZES.some((s) => s.value === v) ? v : "medium") as LogoSize;
+const sizeRow = (s: LogoSize = "medium") => LOGO_SIZES.find((x) => x.value === s) ?? LOGO_SIZES[1];
+/** Visiting-card logo height in px (cards are 1050x600 at 300 DPI). */
+export const cardLogoHeight = (s?: LogoSize) => sizeRow(s).card;
+/** Logo height for visual aids, posters, greetings and flipbook, defined at a 1080 px wide reference and scaled to the canvas. */
+export const canvasLogoHeight = (s: LogoSize | undefined, canvasW = 1080) => sizeRow(s).canvas * (canvasW / 1080);
+/** Kept for older callers: relative scale vs Medium. */
+export const logoScale = (s: LogoSize = "medium") => sizeRow(s).canvas / 150;
 /** Contain-fit inside a box (never stretched or cropped), scaled by the user's size choice. */
 export function fitLogo(iw: number, ih: number, maxW: number, maxH: number, scale = 1) {
   const r = Math.min(maxW / iw, maxH / ih) * scale; return { w: iw * r, h: ih * r };
+}
+/** Bounding box of non-transparent pixels in RGBA data, or null when fully transparent. */
+export function opaqueBounds(p: Uint8ClampedArray | number[], w: number, h: number, minAlpha = 8) {
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (p[(y * w + x) * 4 + 3]! > minAlpha) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  return x1 < 0 ? null : { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+}
+/** Crops empty transparent margins so the chosen height is filled by real artwork. */
+export async function trimTransparent(src: string) {
+  const { c, ctx } = canvasFor(await loadImg(src)); const b = opaqueBounds(ctx.getImageData(0, 0, c.width, c.height).data, c.width, c.height);
+  if (!b || (b.w === c.width && b.h === c.height)) return c.toDataURL("image/png");
+  const out = document.createElement("canvas"); out.width = b.w; out.height = b.h; out.getContext("2d")!.drawImage(c, b.x, b.y, b.w, b.h, 0, 0, b.w, b.h); return out.toDataURL("image/png");
 }

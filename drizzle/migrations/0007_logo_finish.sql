@@ -1,0 +1,2 @@
+ALTER TABLE public.company_branding ADD COLUMN IF NOT EXISTS logo_finish text NOT NULL DEFAULT 'original';
+ALTER TABLE public.company_branding ADD CONSTRAINT company_branding_logo_finish_check CHECK (logo_finish IN ('original','white','gold'));

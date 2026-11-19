@@ -19,6 +19,9 @@ import { compressImage, dataUrlToBlob, downloadDataUrl, slugify } from "@/lib/ca
 import { companyLogoQuery } from "@/components/greeting-studio";
 import { CARD_TEMPLATES, cardSize, DESIGNATIONS, type CardTemplate, type CornerStyle, MAX_CARD_BRANDS, renderCombined, renderSide, waNumber, type CardBrand, type QrTarget, type VisitingCard } from "@/lib/visiting-card";
 import { cn } from "@/lib/utils";
+import { applyLogoFinish, resolveFinish, type LogoFinishChoice } from "@/lib/logo";
+import { asFinish } from "@/lib/company";
+import { LogoFinishSelect } from "@/components/logo-finish-select";
 
 const DEFAULT_TAGLINE = "Advancing Science, Enriching Lives";
 type Saved = { id: string; full_name: string; designation: string; details: Json; updated_at: string };
@@ -35,6 +38,8 @@ export function VisitingCardStudio() {
   const [corners, setCorners] = useState<CornerStyle>("rounded");
   const [thumbs, setThumbs] = useState<Partial<Record<CardTemplate, string>>>({});
   const [preview, setPreview] = useState({ front: "", back: "" });
+  const [finish, setFinish] = useState<LogoFinishChoice>("auto");
+  const [logos, setLogos] = useState<{ light: string; dark: string } | null>(null);
   const [logoColors, setLogoColors] = useState<[string, string] | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -43,12 +48,17 @@ export function VisitingCardStudio() {
   // Auto-fill website/address from Admin settings until the user edits them.
   useEffect(() => { setCard((c) => ({ ...c, website: c.website || company.website || "www.biorica.in", address: c.address || company.address })); }, [company.website, company.address]);
   const logoSrc = logo || "/biorica-logo.png";
+  useEffect(() => {
+    const g = asFinish(company.logo_finish); let live = true;
+    Promise.all([applyLogoFinish(logoSrc, resolveFinish(finish, g, false)), applyLogoFinish(logoSrc, resolveFinish(finish, g, true))]).then(([light, dark]) => { if (live) setLogos({ light, dark }); });
+    return () => { live = false; };
+  }, [logoSrc, finish, company.logo_finish]);
   useEffect(() => { extractColors(logoSrc).then(setLogoColors).catch(() => setLogoColors(null)); }, [logoSrc]);
 
   const brand: CardBrand = useMemo(() => {
     const t = resolveTheme(company);
-    return { companyName: company.company_name || DEFAULT_COMPANY.company_name, tagline, logo: logoSrc, primary: t.primary, accent: t.accent, logoPrimary: logoColors?.[0] ?? company.custom_primary_color, logoAccent: logoColors?.[1] ?? company.custom_accent_color, font: t.heading };
-  }, [company, tagline, logoSrc, logoColors]);
+    return { companyName: company.company_name || DEFAULT_COMPANY.company_name, tagline, logo: logos?.light ?? logoSrc, logoOnDark: logos?.dark ?? logoSrc, primary: t.primary, accent: t.accent, logoPrimary: logoColors?.[0] ?? company.custom_primary_color, logoAccent: logoColors?.[1] ?? company.custom_accent_color, font: t.heading };
+  }, [company, tagline, logoSrc, logoColors, logos]);
 
   useEffect(() => {
     let live = true; const id = setTimeout(async () => {
@@ -136,6 +146,7 @@ export function VisitingCardStudio() {
           <h2 className="pt-2 text-lg font-bold text-primary">Design</h2>
           <div className="grid grid-cols-2 gap-2">{CARD_TEMPLATES.map((t) => <button key={t.value} type="button" aria-pressed={card.template === t.value} onClick={() => set("template", t.value)} className={cn("flex flex-col items-center gap-1.5 rounded-xl border p-2 text-xs font-semibold", card.template === t.value ? "border-teal bg-teal-soft/50 text-primary ring-2 ring-teal/20" : "border-border bg-card text-muted-foreground")}>
             <span className="grid h-20 w-full place-items-center">{thumbs[t.value] ? <img src={thumbs[t.value]} alt="" className={cn("max-h-20 max-w-full shadow-card", corners === "rounded" ? "rounded-md" : "rounded-none")} /> : <Loader2 className="size-4 animate-spin" />}</span>{t.label}</button>)}</div>
+          <LogoFinishSelect id="vc-logo-finish" value={finish} onChange={setFinish} />
           <div className="space-y-1.5"><Label>Corner style</Label><div className="grid grid-cols-2 rounded-lg border border-border bg-muted p-1">
             {([["sharp", "Sharp Print Corners"], ["rounded", "Modern Rounded Corners"]] as [CornerStyle, string][]).map(([v, l]) => <button key={v} type="button" onClick={() => setCorners(v)} className={cn("min-h-9 rounded-md px-1 text-xs font-semibold", corners === v ? "bg-card text-primary shadow-card" : "text-muted-foreground")}>{l}</button>)}
           </div></div>

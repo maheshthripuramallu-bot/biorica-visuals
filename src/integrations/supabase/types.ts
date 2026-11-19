@@ -27,6 +27,7 @@ export type Database = {
           footer_text: string
           heading_font: string
           id: string
+          logo_finish: string
           logo_url: string
           updated_at: string
           website: string
@@ -43,6 +44,7 @@ export type Database = {
           footer_text?: string
           heading_font?: string
           id?: string
+          logo_finish?: string
           logo_url?: string
           updated_at?: string
           website?: string
@@ -59,6 +61,7 @@ export type Database = {
           footer_text?: string
           heading_font?: string
           id?: string
+          logo_finish?: string
           logo_url?: string
           updated_at?: string
           website?: string

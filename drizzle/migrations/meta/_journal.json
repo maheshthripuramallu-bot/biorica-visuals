@@ -50,6 +50,13 @@
       "when": 1795111693513,
       "tag": "0006_create_visiting_cards",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795112843910,
+      "tag": "0007_logo_finish",
+      "breakpoints": true
     }
   ]
 }

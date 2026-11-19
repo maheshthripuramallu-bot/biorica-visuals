@@ -1,11 +1,13 @@
 import { Switch } from "@/components/ui/switch";
-import { companySettingsQuery, DEFAULT_COMPANY } from "@/lib/company";
+import { asFinish, companySettingsQuery, DEFAULT_COMPANY } from "@/lib/company";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Download, History, Loader2, Save, Share2, Sparkles, Trash2, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
+import { applyLogoFinish, FALLBACK_LOGO, resolveFinish, type LogoFinishChoice } from "@/lib/logo";
+import { LogoFinishSelect } from "@/components/logo-finish-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,7 +28,10 @@ const selectClass = "h-11 w-full rounded-md border border-input bg-card px-3 tex
 
 export function GreetingStudio() {
   const { data: auth } = useAuth(); const qc = useQueryClient();
-  const { data: logo = "" } = useQuery(companyLogoQuery); const { data: company = DEFAULT_COMPANY } = useQuery(companySettingsQuery);
+  const { data: rawLogo = "" } = useQuery(companyLogoQuery); const { data: company = DEFAULT_COMPANY } = useQuery(companySettingsQuery);
+  const [logoFinish, setLogoFinish] = useState<LogoFinishChoice>("auto"); const [logo, setLogo] = useState("");
+  // Footer band sits on light paper, so "auto" keeps the Admin default.
+  useEffect(() => { let live = true; applyLogoFinish(rawLogo || FALLBACK_LOGO, resolveFinish(logoFinish, asFinish(company.logo_finish), false)).then((l) => { if (live) setLogo(l); }); return () => { live = false; }; }, [rawLogo, logoFinish, company.logo_finish]);
   const { data: catalog } = useSuspenseQuery(catalogQuery);
   const [productSearch, setProductSearch] = useState("");
   const [g, setG] = useState<Greeting>(initialGreeting);
@@ -114,6 +119,7 @@ export function GreetingStudio() {
           <Label htmlFor="occasion">Occasion</Label><select id="occasion" className={selectClass} value={occasion} onChange={(e) => chooseOccasion(e.target.value)}>{Object.entries(OCCASION_GROUPS).map(([group, values]) => <optgroup key={group} label={group}>{values.map((o) => <option key={o} value={o}>{o === "Birthday" ? "Doctor’s Birthday" : o}</option>)}</optgroup>)}</select>
           <div className="flex flex-wrap gap-2">{["Birthday", "Wedding Anniversary", "Diwali", "National Doctor's Day"].map((o) => <Button type="button" size="sm" variant={occasion === o ? "teal" : "outline"} key={o} onClick={() => chooseOccasion(o)}>{o}</Button>)}</div>
           {occasion === "Custom Occasion" && <><Label htmlFor="custom-occasion">Custom occasion</Label><Input id="custom-occasion" required maxLength={100} value={g.occasion} onChange={(e) => update("occasion", e.target.value)}/></>}
+          <LogoFinishSelect id="greeting-logo-finish" value={logoFinish} onChange={setLogoFinish} />
           <Label htmlFor="greeting-language">Language</Label><select id="greeting-language" className={selectClass} value={g.language} onChange={(e) => { const language = LANGUAGES.find((l) => l === e.target.value); if (language) update("language", language); }}>{LANGUAGES.map((language, i) => <option key={language} value={language}>{LANGUAGE_LABELS[i]}</option>)}</select>
           {g.language !== "English" && <Label className="flex items-center gap-2"><Checkbox checked={g.bilingual} onCheckedChange={(v) => update("bilingual", v === true)}/>Bilingual · regional headline + English message</Label>}
           <Label htmlFor="greeting-headline">Festival / occasion headline</Label><Input id="greeting-headline" maxLength={160} value={g.headline} onChange={(e) => update("headline", e.target.value)} placeholder={g.occasion}/>

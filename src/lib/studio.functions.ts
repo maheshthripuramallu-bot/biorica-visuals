@@ -221,7 +221,7 @@ export const generateCreative = createServerFn({ method: "POST" })
         ? `Palette: match the product pack — use ${data.brandColor} as the dominant brand colour for headline accents, borders, icons and highlight shapes, paired with dark neutral typography and white space. Do not use teal unless it is the pack colour. Crisp sans-serif type, soft shadows. Spell every word exactly as given. No fake statistics, no QR codes.`
         : "",
       data.brandColor ? "" : "Palette: deep navy (#0F2942) typography, clinical teal (#0D9488) accents, crisp sans-serif type, soft shadows. Spell every word exactly as given. No fake statistics, no QR codes.",
-      data.logo ? "Use only the supplied logo image for company branding; never invent another logo mark." : "Do not draw any company logo or invented logo mark — official branding is added in the footer later.",
+      data.logo ? "Use only the supplied logo image for company branding; never invent another logo mark. The logo has a transparent background: place it directly on the surface with NO white box, plate, pill, border or halo behind it." : "Do not draw any company logo or invented logo mark — official branding is added in the footer later.",
       "Keep the bottom 9% of the canvas as plain empty white space — no text or graphics there (a footer is added later).",
     ].filter(Boolean).join("\n");
     try {

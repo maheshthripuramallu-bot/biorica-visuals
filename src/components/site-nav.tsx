@@ -4,7 +4,11 @@ import { ArrowUpRight, LayoutGrid, Search, ShieldCheck, Sparkles } from "lucide-
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getCompanyLogo } from "@/lib/greetings.functions";
+import { FALLBACK_LOGO } from "@/lib/logo";
+
+const companyLogoQuery = { queryKey: ["company-logo"], queryFn: () => getCompanyLogo(), staleTime: 60_000 };
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
@@ -17,15 +21,10 @@ const NAV = [
 ] as const;
 
 export function BrandMark({ className }: { className?: string }) {
+  const { data: logo } = useQuery(companyLogoQuery);
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <span className="relative grid size-9 place-items-center rounded-xl bg-navy-gradient shadow-card">
-        <svg viewBox="0 0 24 24" className="size-5" aria-hidden="true">
-          <path d="M7 4h6.2a4 4 0 0 1 1.9 7.5A4.3 4.3 0 0 1 13.6 20H7V4Z" className="fill-primary-foreground" />
-          <path d="M10 7.2v3.6h3a1.8 1.8 0 0 0 0-3.6h-3Z M10 13.6v3.6h3.4a1.8 1.8 0 0 0 0-3.6H10Z" className="fill-primary" />
-        </svg>
-        <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-teal ring-2 ring-card" />
-      </span>
+      <img src={logo || FALLBACK_LOGO} alt="Biorica Sciences" className="h-9 w-auto max-w-16 bg-transparent object-contain" />
       <span className="leading-none">
         <span className="block font-display text-[15px] font-extrabold tracking-tight text-primary">Biorica</span>
         <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-teal">Visuals</span>

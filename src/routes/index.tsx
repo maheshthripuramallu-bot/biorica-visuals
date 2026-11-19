@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Switch } from "@/components/ui/switch";
-import { companySettingsQuery } from "@/lib/company";
+import { asFinish, companySettingsQuery } from "@/lib/company";
+import { applyLogoFinish, resolveFinish, type LogoFinishChoice } from "@/lib/logo";
+import { LogoFinishSelect } from "@/components/logo-finish-select";
 import { useServerFn } from "@tanstack/react-start";
 import {
   BookOpen,
@@ -112,6 +114,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
   const [showPhone, setShowPhone] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [artDirection, setArtDirection] = useState<ArtDirection>("mnc");
+  const [logoFinish, setLogoFinish] = useState<LogoFinishChoice>("auto");
   const [compliance, setCompliance] = useState<ComplianceFooter>("rmp");
   const [quality, setQuality] = useState<"fast" | "print">("fast");
   const { data: company } = useQuery(companySettingsQuery);
@@ -249,7 +252,9 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
     let logoData: string | undefined;
     if (type === "case_poster" && sendImages.length) {
       try {
-        const r = await fetch(logoUrl || "/biorica-logo.png");
+        // Poster header is a dark brand band: "auto" renders the transparent logo in white there.
+        const finished = await applyLogoFinish(logoUrl || "/biorica-logo.png", resolveFinish(logoFinish, asFinish(company?.logo_finish), true));
+        const r = await fetch(finished);
         if (r.ok) logoData = await blobToDataUrl(await r.blob());
       } catch {
         /* footer still carries branding */
@@ -545,6 +550,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
                 <SelectContent>{ART_DIRECTIONS.map((a) => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
+            {creativeType === "case_poster" && <LogoFinishSelect id="studio-logo-finish" value={logoFinish} onChange={setLogoFinish} />}
             <div className="space-y-1.5">
               <Label>Compliance footer</Label>
               <Select value={compliance} onValueChange={(v) => setCompliance(v as ComplianceFooter)}>

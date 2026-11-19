@@ -14,3 +14,5 @@ Email confirmation delivery and Google/Lovable provider handoff are configured b
 - [x] Add optional 0–3 featured products with text or pack footer placement.
 
 Verified Telugu bilingual AI generation, Malayalam full-regional AI messages, PNG download, saved history after reload, template reuse, portrait/story preview, product-selection limit, admin branding controls and phone layout. Native WhatsApp sharing needs a supporting phone; desktop downloads the PNG and opens WhatsApp for manual attachment. Official logo and pack photos are not supplied, so fallbacks remain.
+# Visual aid upgrades
+- [x] Catalog multi-select (1–10) with portfolio mode, 10 formats, editable brief, art direction, compliance footer, print export.

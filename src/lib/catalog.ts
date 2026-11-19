@@ -55,9 +55,45 @@ export const SPECIALTIES = [
 export const CREATIVE_TYPES = [
   { value: "slide", label: "Detailing Slide", ratio: "16:9", size: "1536x864", w: 16, h: 9 },
   { value: "poster", label: "Promotional Poster", ratio: "4:5", size: "1024x1280", w: 4, h: 5 },
-  { value: "whatsapp", label: "WhatsApp Doctor Card", ratio: "1:1", size: "1024x1024", w: 1, h: 1 },
+  { value: "whatsapp", label: "WhatsApp Recall Card", ratio: "1:1", size: "1024x1024", w: 1, h: 1 },
+  { value: "case_poster", label: "MNC Clinical Case Poster", ratio: "2:3", size: "1024x1536", w: 2, h: 3 },
+  { value: "portfolio", label: "Portfolio Collage", ratio: "4:5", size: "1024x1280", w: 4, h: 5 },
+  { value: "moa", label: "MoA & Synergy Infographic", ratio: "4:5", size: "1024x1280", w: 4, h: 5 },
+  { value: "lbl", label: "LBL Flyer (A5)", ratio: "A5", size: "1024x1440", w: 1, h: 1.414 },
+  { value: "awareness", label: "Patient Awareness Poster", ratio: "4:5", size: "1024x1280", w: 4, h: 5 },
+  { value: "teaser", label: "Launch Teaser", ratio: "9:16", size: "864x1536", w: 9, h: 16 },
+  { value: "banner", label: "Brand Spotlight Banner", ratio: "16:9", size: "1536x864", w: 16, h: 9 },
 ] as const;
 export type CreativeType = (typeof CREATIVE_TYPES)[number]["value"];
+export const CREATIVE_TYPE_VALUES = CREATIVE_TYPES.map((t) => t.value) as [CreativeType, ...CreativeType[]];
+
+export const ART_DIRECTIONS = [
+  { value: "mnc", label: "MNC Clinical Photorealistic" },
+  { value: "3d", label: "3D Medical Anatomy & Molecular" },
+  { value: "swiss", label: "Clean Swiss Minimalist" },
+  { value: "indian", label: "Warm Indian Clinic Lifestyle" },
+] as const;
+export type ArtDirection = (typeof ART_DIRECTIONS)[number]["value"];
+
+export const COMPLIANCE_FOOTERS = [
+  { value: "rmp", label: "For Registered Medical Practitioners Only", text: "For the use of Registered Medical Practitioners only" },
+  { value: "nutra", label: "Nutraceutical — Not for Medicinal Use", text: "Nutraceutical — Not for Medicinal Use" },
+  { value: "none", label: "None", text: "" },
+] as const;
+export type ComplianceFooter = (typeof COMPLIANCE_FOOTERS)[number]["value"];
+
+export const MAX_SELECTED_PRODUCTS = 10;
+/** 1 product → single-brand deep dive; 2–10 → portfolio basket layout. */
+export function layoutModeFor(count: number): "single" | "portfolio" | "none" {
+  if (count <= 0) return "none";
+  return count === 1 ? "single" : "portfolio";
+}
+/** Adds a product to the selection unless it is already full (max 10). */
+export function toggleSelection(selected: string[], id: string): string[] {
+  if (selected.includes(id)) return selected.filter((x) => x !== id);
+  if (selected.length >= MAX_SELECTED_PRODUCTS) return selected;
+  return [...selected, id];
+}
 
 export const MAX_PACK_IMAGES = 5;
 export const MAX_VARIATIONS = 3;

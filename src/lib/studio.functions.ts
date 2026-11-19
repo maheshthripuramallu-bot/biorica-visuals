@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { CREATIVE_TYPES, CREATIVE_TYPE_VALUES } from "./catalog";
 import { editImage, generateImage, generateResponse, GatewayError } from "@lovable.dev/ai-gateway";
 
 const dataUrl = z.string().regex(/^data:image\/(png|jpeg|jpg|webp);base64,/).max(4_000_000);
@@ -12,6 +13,10 @@ export type PackAnalysis = {
   tagline: string;
   indications: string[];
   usps: string[];
+  patient_persona: string;
+  how_it_works: string;
+  dosage_guide: string;
+  prescribed_for: string;
 };
 
 function friendlyError(err: unknown): never {
@@ -28,7 +33,7 @@ function friendlyError(err: unknown): never {
 const analysisSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["brand_name", "composition", "dosage_form", "headline", "tagline", "indications", "usps"],
+  required: ["brand_name", "composition", "dosage_form", "headline", "tagline", "indications", "usps", "patient_persona", "how_it_works", "dosage_guide", "prescribed_for"],
   properties: {
     brand_name: { type: "string", description: "Brand name exactly as printed on the pack, uppercase" },
     composition: { type: "string", description: "Full composition with strengths, e.g. 'Pregabalin 75 mg + Methylcobalamin 1500 mcg'" },
@@ -37,6 +42,10 @@ const analysisSchema = {
     tagline: { type: "string", description: "One-line positioning statement, max 14 words" },
     indications: { type: "array", items: { type: "string" }, description: "3 key clinical indications, max 6 words each" },
     usps: { type: "array", items: { type: "string" }, description: "3 crisp USPs, max 8 words each" },
+    patient_persona: { type: "string", description: "Short Indian patient persona, e.g. 'Mrs. Sharma, 52, homemaker — tingling feet for 6 months', max 20 words" },
+    how_it_works: { type: "string", description: "How it works / mechanism in max 25 words" },
+    dosage_guide: { type: "string", description: "Typical dosage guide, conservative, max 15 words; say 'As directed by the physician' if unsure" },
+    prescribed_for: { type: "string", description: "Who it is prescribed for, max 15 words" },
   },
 } as const;
 
@@ -44,11 +53,12 @@ export const analyzePack = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z
       .object({
-        images: z.array(dataUrl).max(5),
+        images: z.array(dataUrl).max(10),
         brandHint: z.string().max(200).default(""),
         division: z.string().max(200).default(""),
         specialty: z.string().max(100).default("General Physician"),
         knownComposition: z.string().max(1000).default(""),
+        products: z.array(z.object({ brand_name: z.string().max(200), composition: z.string().max(1000) })).max(10).default([]),
       })
       .parse(input),
   )
@@ -62,8 +72,11 @@ export const analyzePack = createServerFn({ method: "POST" })
       `Known composition: ${data.knownComposition || "unknown"}`,
       `Therapeutic division: ${data.division || "unknown"}`,
       `Target doctor specialty: ${data.specialty}`,
+      data.products.length > 1
+        ? `This is a MULTI-PRODUCT PORTFOLIO of ${data.products.length} Biorica brands: ${data.products.map((p) => `${p.brand_name} (${p.composition})`).join("; ")}. Set brand_name to a portfolio title such as 'Complete Neuro Care Range', composition to the brands list, and make the copy describe the range.`
+        : "",
       "Return JSON only.",
-    ].join("\n");
+    ].filter(Boolean).join("\n");
     try {
       const res = await generateResponse({
         model: "openai/gpt-6-astra",
@@ -95,12 +108,30 @@ export const analyzePack = createServerFn({ method: "POST" })
     }
   });
 
-const SIZES = { slide: "1536x864", poster: "1024x1280", whatsapp: "1024x1024" } as const;
+const SIZES = Object.fromEntries(CREATIVE_TYPES.map((t) => [t.value, t.size])) as Record<(typeof CREATIVE_TYPES)[number]["value"], "1536x864" | "1024x1280" | "1024x1024" | "1024x1536" | "1024x1440" | "864x1536">;
 const LAYOUTS = [
   "Layout: clean split composition — product pack on the right on a soft white podium with gentle shadow, headline and bullet points on the left.",
-  "Layout: bold hero — product pack large and centered with a subtle teal glow, headline above, three icon-led benefit tiles below.",
+  "Layout: bold hero — product pack large and centered with a subtle glow, headline above, three icon-led benefit tiles below.",
   "Layout: clinical infographic — headline at top, a simple anatomical or molecular line illustration relevant to the indication, pack in a corner, benefit bullets with minimal icons.",
 ];
+const KINDS: Record<string, string> = {
+  slide: "16:9 landscape doctor-detailing visual aid slide for an iPad/tablet flipbook",
+  poster: "4:5 portrait promotional poster for clinics",
+  whatsapp: "1:1 square, crisp, fast-reading WhatsApp doctor recall card",
+  case_poster: "2:3 vertical MNC-style clinical case detailing poster: an Indian patient persona card, a photorealistic doctor-patient consultation scene, the pack on the clinic desk, and a 3-column infographic titled 'How It Works', 'Dosage Guide', 'Prescribed For'",
+  portfolio: "4:5 multi-product portfolio collage showing all supplied brand packs arranged neatly together under one unified therapeutic headline",
+  moa: "4:5 mechanism-of-action and synergy infographic showing how each active ingredient works in the body, with clean medical icons and arrows",
+  lbl: "vertical A5 print-ready leave-behind literature flyer for doctors with structured sections: composition, USPs, dosage",
+  awareness: "4:5 patient-friendly clinic awareness poster educating about the condition, with subtle, small Biorica brand placement",
+  teaser: "9:16 dramatic 'Coming Soon' new-launch teaser with spotlight lighting and high-impact reveal",
+  banner: "16:9 clean digital brand spotlight banner for WhatsApp status, email headers or clinic screens, minimal text",
+};
+const ART: Record<string, string> = {
+  mnc: "Art direction: premium MNC pharma, photorealistic clinical photography, high-trust.",
+  "3d": "Art direction: glossy 3D medical anatomy and molecular renders, scientific.",
+  swiss: "Art direction: clean Swiss minimalist grid, bold typography, lots of white space, flat shapes.",
+  indian: "Art direction: warm Indian clinic lifestyle, natural light, relatable Indian doctors and patients.",
+};
 
 function dataUrlToBlob(url: string): Blob {
   const [meta, b64] = url.split(",");
@@ -115,8 +146,10 @@ export const generateCreative = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z
       .object({
-        images: z.array(dataUrl).max(3),
-        creativeType: z.enum(["slide", "poster", "whatsapp"]),
+        images: z.array(dataUrl).max(10),
+        creativeType: z.enum(CREATIVE_TYPE_VALUES),
+        artDirection: z.enum(["mnc", "3d", "swiss", "indian"]).default("mnc"),
+        productNames: z.array(z.string().max(200)).max(10).default([]),
         specialty: z.string().max(100),
         variation: z.number().int().min(0).max(2),
         analysis: z.object({
@@ -126,18 +159,18 @@ export const generateCreative = createServerFn({ method: "POST" })
           tagline: z.string().max(400),
           indications: z.array(z.string().max(200)).max(4),
           usps: z.array(z.string().max(200)).max(4),
+          patient_persona: z.string().max(400).default(""),
+          how_it_works: z.string().max(600).default(""),
+          dosage_guide: z.string().max(400).default(""),
+          prescribed_for: z.string().max(400).default(""),
         }),
       })
       .parse(input),
   )
   .handler(async ({ data }) => {
     const a = data.analysis;
-    const kind =
-      data.creativeType === "slide"
-        ? "16:9 landscape doctor-detailing visual aid slide for a tablet presentation"
-        : data.creativeType === "poster"
-          ? "4:5 portrait promotional poster for clinics"
-          : "1:1 square WhatsApp doctor card";
+    const portfolio = data.productNames.length > 1;
+    const kind = portfolio && data.creativeType !== "portfolio" ? `${KINDS[data.creativeType]}, adapted as a multi-product specialty basket featuring all ${data.productNames.length} packs together` : KINDS[data.creativeType];
     const prompt = [
       `Design a premium, clinical ${kind} for the pharmaceutical brand "${a.brand_name}" by Biorica Sciences, aimed at a ${data.specialty}.`,
       data.images.length
@@ -148,10 +181,16 @@ export const generateCreative = createServerFn({ method: "POST" })
       `Composition text (small, clearly legible): "${a.composition}"`,
       `Key indications as short bullets: ${a.indications.map((i) => `"${i}"`).join(", ")}.`,
       `USP highlights: ${a.usps.map((u) => `"${u}"`).join(", ")}.`,
-      LAYOUTS[data.variation % LAYOUTS.length],
-      "Style: high-trust medical SaaS aesthetic, lots of white space, deep navy (#0F2942) typography, clinical teal (#0D9488) accents, crisp sans-serif type, soft shadows. Spell every word exactly as given. No people's faces, no fake statistics, no QR codes.",
+      portfolio ? `Brands to show (each pack clearly, names spelled exactly): ${data.productNames.map((n) => `"${n}"`).join(", ")}.` : "",
+      a.patient_persona && ["case_poster", "awareness"].includes(data.creativeType) ? `Patient persona card text: "${a.patient_persona}"` : "",
+      a.how_it_works ? `How It Works: "${a.how_it_works}"` : "",
+      a.dosage_guide ? `Dosage Guide: "${a.dosage_guide}"` : "",
+      a.prescribed_for ? `Prescribed For: "${a.prescribed_for}"` : "",
+      ["slide", "poster", "whatsapp"].includes(data.creativeType) && !portfolio ? LAYOUTS[data.variation % LAYOUTS.length] : `Variation ${data.variation + 1}: vary composition and camera angle.`,
+      ART[data.artDirection],
+      "Palette: deep navy (#0F2942) typography, clinical teal (#0D9488) accents, crisp sans-serif type, soft shadows. Spell every word exactly as given. No fake statistics, no QR codes.",
       "Keep the bottom 9% of the canvas as plain empty white space — no text or graphics there (a footer is added later).",
-    ].join("\n");
+    ].filter(Boolean).join("\n");
     try {
       const size = SIZES[data.creativeType];
       const res = data.images.length

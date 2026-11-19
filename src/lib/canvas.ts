@@ -26,14 +26,14 @@ async function fontsReady() {
   }
 }
 
-export type FooterOptions = { company?: { company_name: string; website: string; footer_text: string; company_phone: string } | undefined; accent?: string | undefined; showPhone?: boolean };
+export type FooterOptions = { company?: { company_name: string; website: string; footer_text: string; company_phone: string } | undefined; accent?: string | undefined; showPhone?: boolean; note?: string | undefined; print?: boolean };
 function drawFooter(ctx: CanvasRenderingContext2D, w: number, h: number, o: FooterOptions = {}) {
   const css = typeof document === "undefined" ? null : getComputedStyle(document.documentElement);
   const primary = css?.getPropertyValue("--primary").trim() || NAVY;
   const accent = o.accent || css?.getPropertyValue("--teal").trim() || TEAL;
   const name = o.company?.company_name || "Biorica Sciences Pvt Ltd";
   const site = [o.company?.website || "visuals.biorica.in", o.showPhone && o.company?.company_phone ? `Ph: ${o.company.company_phone}` : ""].filter(Boolean).join("  ·  ");
-  const note = o.company?.footer_text ?? "For the use of Registered Medical Practitioners only";
+  const note = o.note ?? o.company?.footer_text ?? "For the use of Registered Medical Practitioners only";
   const fh = Math.round(h * 0.085);
   const y = h - fh;
   ctx.fillStyle = primary;
@@ -62,13 +62,47 @@ export async function addBioricaFooter(src: string, options: FooterOptions = {})
   await fontsReady();
   const img = await loadImage(src);
   const canvas = document.createElement("canvas");
-  canvas.width = img.naturalWidth;
-  canvas.height = img.naturalHeight;
+  const scale = options.print ? 2 : 1;
+  canvas.width = img.naturalWidth * scale;
+  canvas.height = img.naturalHeight * scale;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Your browser couldn't create the image canvas.");
-  ctx.drawImage(img, 0, 0);
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   drawFooter(ctx, canvas.width, canvas.height, options);
-  return canvas.toDataURL("image/png");
+  const url = canvas.toDataURL("image/png");
+  return options.print ? withPngDpi(url, 300) : url;
+}
+
+function crc32(bytes: Uint8Array): number {
+  let c = ~0;
+  for (const b of bytes) {
+    c ^= b;
+    for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xedb88320 : c >>> 1;
+  }
+  return ~c >>> 0;
+}
+
+/** Writes a pHYs chunk so print software reads the PNG at the given DPI. */
+export function withPngDpi(dataUrl: string, dpi: number): string {
+  const bin = atob(dataUrl.split(",")[1] ?? "");
+  const src = Uint8Array.from(bin, (ch) => ch.charCodeAt(0));
+  const ppm = Math.round(dpi / 0.0254);
+  const chunk = new Uint8Array(21);
+  const dv = new DataView(chunk.buffer);
+  dv.setUint32(0, 9);
+  chunk.set([0x70, 0x48, 0x59, 0x73], 4);
+  dv.setUint32(8, ppm);
+  dv.setUint32(12, ppm);
+  chunk[16] = 1;
+  dv.setUint32(17, crc32(chunk.subarray(4, 17)));
+  const out = new Uint8Array(src.length + 21);
+  out.set(src.subarray(0, 33));
+  out.set(chunk, 33);
+  out.set(src.subarray(33), 54);
+  let s = "";
+  for (let i = 0; i < out.length; i += 0x8000) s += String.fromCharCode(...out.subarray(i, i + 0x8000));
+  return `data:image/png;base64,${btoa(s)}`;
 }
 
 function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {

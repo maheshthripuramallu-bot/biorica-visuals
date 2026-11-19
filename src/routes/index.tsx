@@ -31,6 +31,11 @@ import {
   catalogQuery,
   clampVariations,
   CREATIVE_TYPES,
+  ART_DIRECTIONS,
+  COMPLIANCE_FOOTERS,
+  layoutModeFor,
+  type ArtDirection,
+  type ComplianceFooter,
   MAX_PACK_IMAGES,
   SPECIALTIES,
   type CreativeType,
@@ -41,6 +46,8 @@ import { analyzePack, generateCreative, type PackAnalysis } from "@/lib/studio.f
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GreetingStudio } from "@/components/greeting-studio";
+import { ProductPicker } from "@/components/product-picker";
+import { ClinicalBriefEditor } from "@/components/clinical-brief";
 
 export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>): { product?: string | undefined; tab?: "greetings" | undefined } => ({
@@ -102,8 +109,12 @@ function Studio() {
   const [variations, setVariations] = useState(2);
   const [matchPack, setMatchPack] = useState(true);
   const [showPhone, setShowPhone] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [artDirection, setArtDirection] = useState<ArtDirection>("mnc");
+  const [compliance, setCompliance] = useState<ComplianceFooter>("rmp");
+  const [quality, setQuality] = useState<"fast" | "print">("fast");
   const { data: company } = useQuery(companySettingsQuery);
-  const [phase, setPhase] = useState<"idle" | "analyzing" | "generating" | "done">("idle");
+  const [phase, setPhase] = useState<"idle" | "analyzing" | "brief" | "generating" | "done">("idle");
   const [analysis, setAnalysis] = useState<PackAnalysis | null>(null);
   const [creatives, setCreatives] = useState<Creative[]>([]);
   const [viewer, setViewer] = useState<number | null>(null);
@@ -111,6 +122,35 @@ function Studio() {
   const outputRef = useRef<HTMLDivElement>(null);
 
   const selectedProduct = productId ? catalog.products.find((p) => p.id === productId) : undefined;
+  const pickedProducts = selectedIds.map((id) => catalog.products.find((p) => p.id === id)).filter((p): p is NonNullable<typeof p> => !!p);
+  const mode = layoutModeFor(pickedProducts.length);
+
+  function changeSelection(ids: string[]) {
+    setSelectedIds(ids);
+    const only = ids.length === 1 ? catalog.products.find((p) => p.id === ids[0]) : undefined;
+    if (only) {
+      setProductId(only.id);
+      setDivisionId(only.division_id);
+      setBrandHint(only.brand_name);
+    } else if (ids.length > 1) {
+      setProductId(null);
+      if (creativeType === "slide" || creativeType === "whatsapp") setCreativeType("portfolio");
+    }
+  }
+
+  async function catalogPackImages(): Promise<string[]> {
+    const out: string[] = [];
+    for (const p of pickedProducts) {
+      if (!p.pack_image_url) continue;
+      try {
+        const r = await fetch(p.pack_image_url);
+        if (r.ok) out.push(await blobToDataUrl(await r.blob()));
+      } catch {
+        /* skip unreadable pack */
+      }
+    }
+    return out;
+  }
   const division = catalog.divisions.find((d) => d.id === divisionId);
 
   // Pre-fill from a product ("Generate Visual Aid" buttons elsewhere in the app)
@@ -119,6 +159,7 @@ function Studio() {
     const product = catalog.products.find((p) => p.id === productParam);
     if (!product) return;
     setProductId(product.id);
+    setSelectedIds([product.id]);
     setDivisionId(product.division_id);
     setBrandHint(product.brand_name);
     setAnalysis(null);
@@ -165,43 +206,55 @@ function Studio() {
   const busy = phase === "analyzing" || phase === "generating";
 
   async function generate() {
-    if (!images.length && !brandHint.trim()) {
-      toast.error("Upload a pack image or enter a product name first.");
+    if (!images.length && !brandHint.trim() && !pickedProducts.length) {
+      toast.error("Upload a pack image, pick catalog products or enter a product name first.");
       return;
     }
-    const count = clampVariations(variations);
     setPhase("analyzing");
     setAnalysis(null);
     setCreatives([]);
     setTimeout(() => outputRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
-    let result: PackAnalysis;
     try {
-      result = await runAnalyze({
+      const packs = mode === "portfolio" ? [] : (await catalogPackImages()).slice(0, 1);
+      const result = await runAnalyze({
         data: {
-          images: images.map((i) => i.dataUrl),
-          brandHint: brandHint.trim(),
+          images: [...images.map((i) => i.dataUrl), ...(images.length ? [] : packs)].slice(0, 5),
+          brandHint: mode === "portfolio" ? "" : brandHint.trim(),
           division: division?.name ?? "",
           specialty,
-          knownComposition: selectedProduct?.composition ?? "",
+          knownComposition: mode === "portfolio" ? "" : selectedProduct?.composition ?? "",
+          products: mode === "portfolio" ? pickedProducts.map((p) => ({ brand_name: p.brand_name, composition: p.composition })) : [],
         },
       });
+      setAnalysis(result);
+      setPhase("brief");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Analysis failed");
       setPhase("idle");
-      return;
     }
-    setAnalysis(result);
+  }
+
+  async function generateFinal() {
+    const result = analysis;
+    if (!result) return;
+    const count = clampVariations(variations);
     setPhase("generating");
     const type = creativeType;
     const batch: Creative[] = Array.from({ length: count }, (_, i) => ({ id: crypto.randomUUID(), variation: i, type, status: "pending" }));
     setCreatives(batch);
+    const packs = await catalogPackImages();
+    const sendImages = [...images.map((i) => i.dataUrl), ...packs].slice(0, mode === "portfolio" ? 10 : 3);
+    const note = COMPLIANCE_FOOTERS.find((c) => c.value === compliance)?.text ?? "";
+    const accent = matchPack && mode !== "portfolio" ? selectedProduct?.brand_color ?? undefined : undefined;
     await Promise.all(
       batch.map(async (c) => {
         try {
           const res = await runGenerate({
             data: {
-              images: images.slice(0, 3).map((i) => i.dataUrl),
+              images: sendImages,
               creativeType: type,
+              artDirection,
+              productNames: mode === "portfolio" ? pickedProducts.map((p) => p.brand_name) : [],
               specialty,
               variation: c.variation,
               analysis: {
@@ -211,10 +264,14 @@ function Studio() {
                 tagline: result.tagline,
                 indications: result.indications,
                 usps: result.usps,
+                patient_persona: result.patient_persona,
+                how_it_works: result.how_it_works,
+                dosage_guide: result.dosage_guide,
+                prescribed_for: result.prescribed_for,
               },
             },
           });
-          const withFooter = await addBioricaFooter(res.image, { company, showPhone, accent: matchPack ? selectedProduct?.brand_color ?? undefined : undefined });
+          const withFooter = await addBioricaFooter(res.image, { company, showPhone, accent, note, print: quality === "print" });
           setCreatives((prev) => prev.map((x) => (x.id === c.id ? { ...x, status: "done", image: withFooter, prompt: res.prompt } : x)));
         } catch (e) {
           setCreatives((prev) =>
@@ -228,6 +285,8 @@ function Studio() {
 
   function matchProductId(): string | null {
     if (productId) return productId;
+    if (pickedProducts.length === 1) return pickedProducts[0]?.id ?? null;
+    if (pickedProducts.length > 1) return null;
     const brand = (analysis?.brand_name ?? brandHint).trim().toLowerCase();
     if (!brand) return null;
     const exact = catalog.products.find((p) => p.brand_name.toLowerCase() === brand);
@@ -368,6 +427,8 @@ function Studio() {
             </div>
           )}
 
+          <ProductPicker catalog={catalog} selected={selectedIds} onChange={changeSelection} />
+
           <div className="mt-6 space-y-4">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
               <div className="space-y-1.5">
@@ -461,6 +522,29 @@ function Studio() {
             </div>
 
             <div className="space-y-1.5">
+              <Label>Visual art direction</Label>
+              <Select value={artDirection} onValueChange={(v) => setArtDirection(v as ArtDirection)}>
+                <SelectTrigger className="h-11 bg-card"><SelectValue /></SelectTrigger>
+                <SelectContent>{ART_DIRECTIONS.map((a) => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Compliance footer</Label>
+              <Select value={compliance} onValueChange={(v) => setCompliance(v as ComplianceFooter)}>
+                <SelectTrigger className="h-11 bg-card"><SelectValue /></SelectTrigger>
+                <SelectContent>{COMPLIANCE_FOOTERS.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Export quality</Label>
+              <div className="grid grid-cols-2 rounded-lg border border-border bg-muted p-1">
+                {([["fast", "WhatsApp Optimized"], ["print", "High-Res Print (300 DPI)"]] as const).map(([v, l]) => (
+                  <button key={v} type="button" onClick={() => setQuality(v)} className={cn("min-h-9 rounded-md px-1 text-xs font-semibold", quality === v ? "bg-card text-primary shadow-card" : "text-muted-foreground")}>{l}</button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
               <Label>Variations</Label>
               <div className="grid grid-cols-3 rounded-lg border border-border bg-muted p-1">
                 {[1, 2, 3].map((n) => (
@@ -481,7 +565,7 @@ function Studio() {
 
             <Button variant="teal" size="xl" className="h-auto min-h-12 w-full whitespace-normal px-3 py-3 text-sm" onClick={generate} disabled={busy || compressing > 0}>
               {busy ? <Loader2 className="animate-spin" /> : <Wand2 />}
-              {phase === "analyzing" ? "Reading the pack…" : phase === "generating" ? "Creating visual aids…" : "Auto-Generate Indications & Visual Aids"}
+              {phase === "analyzing" ? "Drafting the clinical brief…" : phase === "generating" ? "Creating visual aids…" : "Auto-Generate Indications & Visual Aids"}
             </Button>
           </div>
         </section>
@@ -492,18 +576,25 @@ function Studio() {
             <EmptyOutput />
           ) : (
             <>
-              <AnalysisPanel analysis={analysis} loading={phase === "analyzing"} />
+              {phase === "analyzing" ? <AnalysisPanel analysis={null} loading /> : analysis && (
+                <>
+                  <ClinicalBriefEditor brief={analysis} onChange={setAnalysis} />
+                  <Button variant="teal" size="xl" className="w-full" onClick={generateFinal} disabled={busy}>
+                    {phase === "generating" ? <Loader2 className="animate-spin" /> : <Wand2 />} Generate Final Visual
+                  </Button>
+                </>
+              )}
               {creatives.length > 0 && (
                 <div>
                   <div className="mb-3 flex items-center justify-between">
                     <h2 className="text-lg font-bold text-primary">Generated creatives</h2>
                     {phase === "done" && (
-                      <Button variant="ghost" size="sm" onClick={generate}>
+                      <Button variant="ghost" size="sm" onClick={generateFinal}>
                         <RefreshCw /> Regenerate
                       </Button>
                     )}
                   </div>
-                  <div className={cn("grid gap-5", creatives[0]?.type === "slide" ? "grid-cols-1 xl:grid-cols-2" : "sm:grid-cols-2 xl:grid-cols-3")}>
+                  <div className={cn("grid gap-5", (CREATIVE_TYPES.find((t) => t.value === creatives[0]?.type)?.w ?? 1) > 1.5 ? "grid-cols-1 xl:grid-cols-2" : "sm:grid-cols-2 xl:grid-cols-3")}>
                     {creatives.map((c, i) => (
                       <CreativeCard
                         key={c.id}

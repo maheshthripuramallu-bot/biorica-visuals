@@ -150,6 +150,7 @@ export const generateCreative = createServerFn({ method: "POST" })
         creativeType: z.enum(CREATIVE_TYPE_VALUES),
         artDirection: z.enum(["mnc", "3d", "swiss", "indian"]).default("mnc"),
         productNames: z.array(z.string().max(200)).max(10).default([]),
+        brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
         specialty: z.string().max(100),
         variation: z.number().int().min(0).max(2),
         analysis: z.object({
@@ -188,7 +189,11 @@ export const generateCreative = createServerFn({ method: "POST" })
       a.prescribed_for ? `Prescribed For: "${a.prescribed_for}"` : "",
       ["slide", "poster", "whatsapp"].includes(data.creativeType) && !portfolio ? LAYOUTS[data.variation % LAYOUTS.length] : `Variation ${data.variation + 1}: vary composition and camera angle.`,
       ART[data.artDirection],
-      "Palette: deep navy (#0F2942) typography, clinical teal (#0D9488) accents, crisp sans-serif type, soft shadows. Spell every word exactly as given. No fake statistics, no QR codes.",
+      data.brandColor
+        ? `Palette: match the product pack — use ${data.brandColor} as the dominant brand colour for headline accents, borders, icons and highlight shapes, paired with dark neutral typography and white space. Do not use teal unless it is the pack colour. Crisp sans-serif type, soft shadows. Spell every word exactly as given. No fake statistics, no QR codes.`
+        : "",
+      data.brandColor ? "" : "Palette: deep navy (#0F2942) typography, clinical teal (#0D9488) accents, crisp sans-serif type, soft shadows. Spell every word exactly as given. No fake statistics, no QR codes.",
+      "Do not draw any company logo or invented logo mark — official branding is added in the footer later.",
       "Keep the bottom 9% of the canvas as plain empty white space — no text or graphics there (a footer is added later).",
     ].filter(Boolean).join("\n");
     try {

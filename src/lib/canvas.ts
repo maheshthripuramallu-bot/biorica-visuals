@@ -27,9 +27,16 @@ async function fontsReady() {
 }
 
 export type FooterOptions = { company?: { company_name: string; website: string; footer_text: string; company_phone: string } | undefined; accent?: string | undefined; showPhone?: boolean; note?: string | undefined; print?: boolean };
+/** Darkens a hex colour to the given brightness factor (0–1). */
+export function shade(hex: string, f: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  const c = [n >> 16, (n >> 8) & 255, n & 255].map((v) => Math.round(v * f).toString(16).padStart(2, "0"));
+  return `#${c.join("")}`;
+}
+
 function drawFooter(ctx: CanvasRenderingContext2D, w: number, h: number, o: FooterOptions = {}) {
   const css = typeof document === "undefined" ? null : getComputedStyle(document.documentElement);
-  const primary = css?.getPropertyValue("--primary").trim() || NAVY;
+  const primary = o.accent && /^#[0-9a-f]{6}$/i.test(o.accent) ? shade(o.accent, 0.35) : css?.getPropertyValue("--primary").trim() || NAVY;
   const accent = o.accent || css?.getPropertyValue("--teal").trim() || TEAL;
   const name = o.company?.company_name || "Biorica Sciences Pvt Ltd";
   const site = [o.company?.website || "visuals.biorica.in", o.showPhone && o.company?.company_phone ? `Ph: ${o.company.company_phone}` : ""].filter(Boolean).join("  ·  ");

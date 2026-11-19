@@ -254,6 +254,7 @@ function Studio() {
               images: sendImages,
               creativeType: type,
               artDirection,
+              ...(accent && /^#[0-9a-f]{6}$/i.test(accent) ? { brandColor: accent } : {}),
               productNames: mode === "portfolio" ? pickedProducts.map((p) => p.brand_name) : [],
               specialty,
               variation: c.variation,

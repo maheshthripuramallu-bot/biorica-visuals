@@ -27,4 +27,7 @@ describe("Search", () => {
 });
 describe("Sign-in return path", () => {
   it("rejects external or malformed destinations", () => { expect(safeRedirect("//example.com")).toBe("/admin"); expect(safeRedirect("/\\example.com")).toBe("/admin"); expect(safeRedirect("/divisions")).toBe("/divisions"); });
+});import { shade } from "@/lib/canvas";
+describe("Pack colour footer", () => {
+  it("darkens the pack colour for the footer band", () => expect(shade("#9D174D", 0.5)).toBe("#4f0c27"));
 });

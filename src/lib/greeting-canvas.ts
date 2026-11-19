@@ -64,13 +64,27 @@ export async function renderGreeting(g: Greeting, logo = "", background = "", va
       }
     }
   }
-  const footerY = g.products.length ? .91 : .87;
-  ctx.fillStyle = token("--greeting-brand-paper"); ctx.fillRect(pad * .65, h * footerY, w - pad * 1.3, h * (g.products.length ? .045 : .08));
-  if (logo) { const image = await loadImage(logo); const scale = Math.min(w * .12 / image.width, h * .03 / image.height); ctx.drawImage(image, pad, h * (footerY + .005), image.width * scale, image.height * scale); }
-  ctx.fillStyle = token("--greeting-brand-ink"); ctx.font = `700 ${w * .022}px "Plus Jakarta Sans", sans-serif`; const cx = logo ? w * .56 : w / 2, fw = logo ? w - pad * 2 - w * .14 : w - pad * 2;
-  ctx.fillText(company.company_name, cx, h * (footerY + .006), fw);
-  ctx.font = `500 ${w * .012}px "Plus Jakarta Sans", sans-serif`;
-  ctx.fillText([company.website, company.address].filter(Boolean).join("  ·  "), cx, h * (footerY + .022), fw);
-  if (company.footer_text) ctx.fillText(company.footer_text, cx, h * (footerY + .034), fw);
+  // Footer band: logo on the left, company details left-aligned and auto-shrunk so nothing clips.
+  const top = h * (g.products.length ? .9 : .87), bottom = h * .962, left = pad * .65, right = w - pad * .65, bandH = bottom - top;
+  ctx.fillStyle = token("--greeting-brand-paper"); ctx.fillRect(left, top, right - left, bandH);
+  const inset = bandH * .12; let textX = left + inset * 1.5;
+  try {
+    const image = await loadImage(logo || "/biorica-logo.png"); const box = bandH - inset * 2;
+    const scale = Math.min(box * 1.6 / image.width, box / image.height), lw = image.width * scale, lh = image.height * scale;
+    ctx.drawImage(image, textX, top + (bandH - lh) / 2, lw, lh); textX += lw + inset * 1.5;
+  } catch { /* text-only footer */ }
+  const maxW = right - inset * 1.5 - textX;
+  const detail = [company.website, company.address].filter(Boolean).join("  ·  ");
+  const wrap = (text: string, font: string) => { ctx.font = font; const out: string[] = []; let line = ""; for (const word of text.split(/\s+/)) { const t = line ? `${line} ${word}` : word; if (ctx.measureText(t).width > maxW && line) { out.push(line); line = word; } else line = t; } if (line) out.push(line); return out; };
+  let size = w * .02, rows: { text: string; font: string; size: number }[] = [];
+  for (; size > 6; size -= .5) {
+    const small = size * .62, f1 = `700 ${size}px "Plus Jakarta Sans", sans-serif`, f2 = `500 ${small}px "Plus Jakarta Sans", sans-serif`, f3 = `italic 500 ${small * .92}px "Plus Jakarta Sans", sans-serif`;
+    rows = [...wrap(company.company_name, f1).map((text) => ({ text, font: f1, size })), ...(detail ? wrap(detail, f2) : []).map((text) => ({ text, font: f2, size: small })), ...(company.footer_text ? wrap(company.footer_text, f3) : []).map((text) => ({ text, font: f3, size: small * .92 }))];
+    if (rows.reduce((n, r) => n + r.size * 1.25, 0) <= bandH - inset * 2 && rows.every((r) => { ctx.font = r.font; return ctx.measureText(r.text).width <= maxW; })) break;
+  }
+  ctx.textAlign = "left"; ctx.fillStyle = token("--greeting-brand-ink");
+  let y = top + (bandH - rows.reduce((n, r) => n + r.size * 1.25, 0)) / 2;
+  for (const r of rows) { ctx.font = r.font; ctx.fillText(r.text, textX, y + r.size * .1, maxW); y += r.size * 1.25; }
+  ctx.textAlign = "center";
   return canvas.toDataURL("image/png");
 }

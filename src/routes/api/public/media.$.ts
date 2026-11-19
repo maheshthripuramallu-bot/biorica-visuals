@@ -15,6 +15,16 @@ export const Route = createFileRoute("/api/public/media/$")({
           return new Response("Not found", { status: 404 });
         }
         const sb = createPublicClient();
+        if (bucket === "mr-downloads") {
+          // Large files (multi-page PDFs, pack ZIPs): redirect to a short-lived signed storage URL so
+          // the file streams directly from storage (range requests, no worker memory/time limits).
+          const dlName = new URL(request.url).searchParams.get("download");
+          const { data: signed, error: signErr } = await sb.storage
+            .from(bucket)
+            .createSignedUrl(path, 60 * 60, dlName ? { download: dlName } : undefined);
+          if (signErr || !signed?.signedUrl) return new Response("Not found", { status: 404 });
+          return new Response(null, { status: 302, headers: { location: signed.signedUrl, "cache-control": "no-store" } });
+        }
         const { data, error } = await sb.storage.from(bucket).download(path);
         if (error || !data) return new Response("Not found", { status: 404 });
         const dl = new URL(request.url).searchParams.get("download");

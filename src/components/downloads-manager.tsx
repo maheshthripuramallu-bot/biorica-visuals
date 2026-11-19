@@ -31,6 +31,7 @@ export function DownloadsManager() {
 
   function pick(f?: File | null) {
     if (!f) return;
+    if (f.size > 2 * 1024 ** 3) { toast.error("Files up to 2 GB can be uploaded."); return; }
     setFile(f);
     if (!form.title) setForm((s) => ({ ...s, title: f.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ") }));
   }

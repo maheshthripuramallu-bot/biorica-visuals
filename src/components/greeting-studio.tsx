@@ -1,3 +1,4 @@
+import { companySettingsQuery, DEFAULT_COMPANY } from "@/lib/company";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
@@ -24,7 +25,7 @@ const selectClass = "h-11 w-full rounded-md border border-input bg-card px-3 tex
 
 export function GreetingStudio() {
   const { data: auth } = useAuth(); const qc = useQueryClient();
-  const { data: logo = "" } = useQuery(companyLogoQuery);
+  const { data: logo = "" } = useQuery(companyLogoQuery); const { data: company = DEFAULT_COMPANY } = useQuery(companySettingsQuery);
   const { data: catalog } = useSuspenseQuery(catalogQuery);
   const [productSearch, setProductSearch] = useState("");
   const [g, setG] = useState<Greeting>(initialGreeting);
@@ -43,9 +44,9 @@ export function GreetingStudio() {
   }, staleTime: 5 * 60_000 });
   useEffect(() => {
     let active = true;
-    const timer = setTimeout(() => { renderGreeting(g, logo).then((img) => { if (active) { setPreview(img); setPreviewError(""); } }).catch(() => { if (active) setPreviewError("Couldn't load the portrait or logo. Please choose another image."); }); }, 200);
+    const timer = setTimeout(() => { renderGreeting(g, logo, "", 0, company).then((img) => { if (active) { setPreview(img); setPreviewError(""); } }).catch(() => { if (active) setPreviewError("Couldn't load the portrait or logo. Please choose another image."); }); }, 200);
     return () => { active = false; clearTimeout(timer); };
-  }, [g, logo]);
+  }, [g, logo, company]);
   function update<K extends keyof Greeting>(key: K, value: Greeting[K]) { setG((prev) => ({ ...prev, [key]: value })); }
   function chooseOccasion(value: string) { setOccasion(value); const resolved = value === "Custom Occasion" ? "" : value; setG((prev) => ({ ...prev, occasion: resolved, headline: "", message: resolved ? defaultMessage(resolved) : "" })); }
   const signIn = <Button asChild variant="outline"><Link to="/auth" search={{ redirect: "/?tab=greetings" }}>Sign in for AI & saved history</Link></Button>;
@@ -58,7 +59,7 @@ export function GreetingStudio() {
       for (let i = 0; i < variationInput.parse(count); i++) {
         setProgress(`Creating variation ${i + 1} of ${count}…`);
         const background = await createBackground({ data: { occasion: current.occasion, style: current.style, format: current.format, variation: i } });
-        const image = await renderGreeting(current, logo, background, i);
+        const image = await renderGreeting(current, logo, background, i, company);
         setCards((prev) => [...prev, { id: crypto.randomUUID(), greeting: current, image, saved: false }]);
       }
       output.current?.scrollIntoView({ behavior: "smooth", block: "start" });

@@ -16,19 +16,31 @@ export type Database = {
     Tables: {
       company_branding: {
         Row: {
+          address: string
+          company_name: string
+          footer_text: string
           id: string
           logo_url: string
           updated_at: string
+          website: string
         }
         Insert: {
-          id?: string
-          logo_url: string
-          updated_at?: string
-        }
-        Update: {
+          address?: string
+          company_name?: string
+          footer_text?: string
           id?: string
           logo_url?: string
           updated_at?: string
+          website?: string
+        }
+        Update: {
+          address?: string
+          company_name?: string
+          footer_text?: string
+          id?: string
+          logo_url?: string
+          updated_at?: string
+          website?: string
         }
         Relationships: []
       }

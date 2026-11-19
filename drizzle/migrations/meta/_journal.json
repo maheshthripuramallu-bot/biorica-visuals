@@ -29,6 +29,13 @@
       "when": 1795095649166,
       "tag": "0003_doctor_greetings_and_branding",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795101480214,
+      "tag": "0004_company_settings",
+      "breakpoints": true
     }
   ]
 }

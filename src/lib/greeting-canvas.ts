@@ -1,8 +1,9 @@
 import { loadImage } from "./canvas";
+import { DEFAULT_COMPANY, type CompanySettings } from "./company";
 import { greetingDimensions, LANGUAGE_FONTS, type Greeting } from "./greetings";
 
 // Canvas reads the same semantic palette as the page; typography is composed locally, never by AI.
-export async function renderGreeting(g: Greeting, logo = "", background = "", variation = 0) {
+export async function renderGreeting(g: Greeting, logo = "", background = "", variation = 0, company: CompanySettings = DEFAULT_COMPANY) {
   await document.fonts.ready;
   const family = `"${LANGUAGE_FONTS[g.language]}", "Plus Jakarta Sans", sans-serif`;
   await Promise.all([document.fonts.load(`500 32px ${family}`, g.headline + g.message + g.doctorName), document.fonts.load(`700 32px ${family}`, g.headline + g.doctorName)]);
@@ -66,6 +67,10 @@ export async function renderGreeting(g: Greeting, logo = "", background = "", va
   const footerY = g.products.length ? .91 : .87;
   ctx.fillStyle = token("--greeting-brand-paper"); ctx.fillRect(pad * .65, h * footerY, w - pad * 1.3, h * (g.products.length ? .045 : .08));
   if (logo) { const image = await loadImage(logo); const scale = Math.min(w * .12 / image.width, h * .03 / image.height); ctx.drawImage(image, pad, h * (footerY + .005), image.width * scale, image.height * scale); }
-  ctx.fillStyle = token("--greeting-brand-ink"); ctx.font = `700 ${w * .022}px "Plus Jakarta Sans", sans-serif`; ctx.fillText("Biorica Sciences Pvt. Ltd.", logo ? w * .56 : w / 2, h * (footerY + .016));
+  ctx.fillStyle = token("--greeting-brand-ink"); ctx.font = `700 ${w * .022}px "Plus Jakarta Sans", sans-serif`; const cx = logo ? w * .56 : w / 2, fw = logo ? w - pad * 2 - w * .14 : w - pad * 2;
+  ctx.fillText(company.company_name, cx, h * (footerY + .006), fw);
+  ctx.font = `500 ${w * .012}px "Plus Jakarta Sans", sans-serif`;
+  ctx.fillText([company.website, company.address].filter(Boolean).join("  ·  "), cx, h * (footerY + .022), fw);
+  if (company.footer_text) ctx.fillText(company.footer_text, cx, h * (footerY + .034), fw);
   return canvas.toDataURL("image/png");
 }

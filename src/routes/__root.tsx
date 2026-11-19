@@ -1,3 +1,4 @@
+import { SiteFooter } from "@/components/site-footer";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -150,6 +151,7 @@ function RootComponent() {
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
       </div>
+      {!immersive && <SiteFooter />}
       {!immersive && <BottomNav />}
       <Toaster position="top-center" richColors />
     </QueryClientProvider>

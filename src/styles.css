@@ -88,6 +88,9 @@
   --greeting-floral-accent: #a74769;
   --greeting-brand-paper: #ffffff;
   --greeting-brand-ink: #0f2942;
+  --greeting-vibrant-paper: #fffbea;
+  --greeting-vibrant-ink: #174b44;
+  --greeting-vibrant-accent: #bf3855;
   --radius: 0.75rem;
   --background: oklch(0.984 0.003 247.9); /* #F8FAFC */
   --foreground: oklch(0.275 0.056 249.8); /* #0F2942 */

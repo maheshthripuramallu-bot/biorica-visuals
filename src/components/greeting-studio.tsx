@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Download, History, Loader2, Save, Share2, Sparkles, Trash2, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { OCCASIONS, GREETING_STYLES, QUALIFICATIONS, defaultMessage, initialGreeting, greetingInput, variationInput, type Greeting } from "@/lib/greetings";
+import { OCCASIONS, OCCASION_GROUPS, LANGUAGES, LANGUAGE_LABELS, GREETING_STYLES, QUALIFICATIONS, defaultMessage, initialGreeting, greetingInput, variationInput, type Greeting } from "@/lib/greetings";
+import { catalogQuery } from "@/lib/catalog";
 import { renderGreeting } from "@/lib/greeting-canvas";
 import { getCompanyLogo, writeGreeting, generateGreetingBackground } from "@/lib/greetings.functions";
 import { blobToDataUrl, compressImage, dataUrlToBlob, downloadDataUrl, slugify } from "@/lib/canvas";
@@ -24,6 +25,8 @@ const selectClass = "h-11 w-full rounded-md border border-input bg-card px-3 tex
 export function GreetingStudio() {
   const { data: auth } = useAuth(); const qc = useQueryClient();
   const { data: logo = "" } = useQuery(companyLogoQuery);
+  const { data: catalog } = useSuspenseQuery(catalogQuery);
+  const [productSearch, setProductSearch] = useState("");
   const [g, setG] = useState<Greeting>(initialGreeting);
   const [occasion, setOccasion] = useState<string>("Birthday");
   const [count, setCount] = useState(2); const [preview, setPreview] = useState("");
@@ -44,7 +47,7 @@ export function GreetingStudio() {
     return () => { active = false; clearTimeout(timer); };
   }, [g, logo]);
   function update<K extends keyof Greeting>(key: K, value: Greeting[K]) { setG((prev) => ({ ...prev, [key]: value })); }
-  function chooseOccasion(value: string) { setOccasion(value); const resolved = value === "Custom Occasion" ? "" : value; setG((prev) => ({ ...prev, occasion: resolved, message: resolved ? defaultMessage(resolved) : "" })); }
+  function chooseOccasion(value: string) { setOccasion(value); const resolved = value === "Custom Occasion" ? "" : value; setG((prev) => ({ ...prev, occasion: resolved, headline: "", message: resolved ? defaultMessage(resolved) : "" })); }
   const signIn = <Button asChild variant="outline"><Link to="/auth" search={{ redirect: "/?tab=greetings" }}>Sign in for AI & saved history</Link></Button>;
   async function generate() {
     const parsed = greetingInput.safeParse(g);
@@ -106,12 +109,21 @@ export function GreetingStudio() {
           {g.photo && <div className="flex items-center gap-3"><Label className="flex items-center gap-2"><Checkbox checked={g.circular} onCheckedChange={(v) => update("circular", v === true)}/>Circular portrait</Label><Button type="button" variant="ghost" size="icon" aria-label="Remove doctor photo" title="Remove doctor photo" onClick={() => update("photo", "")}><X/></Button></div>}
         </fieldset>
         <fieldset className="space-y-3 border-t border-border pt-5"><legend className="text-lg font-bold">Occasion & message</legend>
-          <Label htmlFor="occasion">Occasion</Label><select id="occasion" className={selectClass} value={occasion} onChange={(e) => chooseOccasion(e.target.value)}>{OCCASIONS.map((o) => <option key={o}>{o}</option>)}</select>
+          <Label htmlFor="occasion">Occasion</Label><select id="occasion" className={selectClass} value={occasion} onChange={(e) => chooseOccasion(e.target.value)}>{Object.entries(OCCASION_GROUPS).map(([group, values]) => <optgroup key={group} label={group}>{values.map((o) => <option key={o} value={o}>{o === "Birthday" ? "Doctor’s Birthday" : o}</option>)}</optgroup>)}</select>
           <div className="flex flex-wrap gap-2">{["Birthday", "Wedding Anniversary", "Diwali", "National Doctor's Day"].map((o) => <Button type="button" size="sm" variant={occasion === o ? "teal" : "outline"} key={o} onClick={() => chooseOccasion(o)}>{o}</Button>)}</div>
           {occasion === "Custom Occasion" && <><Label htmlFor="custom-occasion">Custom occasion</Label><Input id="custom-occasion" required maxLength={100} value={g.occasion} onChange={(e) => update("occasion", e.target.value)}/></>}
+          <Label htmlFor="greeting-language">Language</Label><select id="greeting-language" className={selectClass} value={g.language} onChange={(e) => { const language = LANGUAGES.find((l) => l === e.target.value); if (language) update("language", language); }}>{LANGUAGES.map((language, i) => <option key={language} value={language}>{LANGUAGE_LABELS[i]}</option>)}</select>
+          {g.language !== "English" && <Label className="flex items-center gap-2"><Checkbox checked={g.bilingual} onCheckedChange={(v) => update("bilingual", v === true)}/>Bilingual · regional headline + English message</Label>}
+          <Label htmlFor="greeting-headline">Festival / occasion headline</Label><Input id="greeting-headline" maxLength={160} value={g.headline} onChange={(e) => update("headline", e.target.value)} placeholder={g.occasion}/>
           <Label htmlFor="greeting-message">Greeting message</Label><Textarea id="greeting-message" required maxLength={600} rows={5} value={g.message} onChange={(e) => update("message", e.target.value)}/>
-          <Button type="button" variant="outline" disabled={writing || busy || !auth?.user || !g.occasion.trim()} className="w-full whitespace-normal" onClick={async () => { setWriting(true); try { update("message", await autoWrite({ data: { doctorName: g.doctorName, qualification: g.qualification, occasion: g.occasion } })); } catch (e) { toast.error(e instanceof Error ? e.message : "Couldn't write the message."); } finally { setWriting(false); } }}>{writing ? <Loader2 className="animate-spin"/> : <Sparkles/>}Auto-Write Message with AI</Button>
+          <Button type="button" variant="outline" disabled={writing || busy || !auth?.user || !g.occasion.trim()} className="w-full whitespace-normal" onClick={async () => { setWriting(true); try { const result = await autoWrite({ data: { doctorName: g.doctorName, qualification: g.qualification, occasion: g.occasion, language: g.language, bilingual: g.bilingual } }); setG((prev) => ({ ...prev, ...result })); } catch (e) { toast.error(e instanceof Error ? e.message : "Couldn't write the message."); } finally { setWriting(false); } }}>{writing ? <Loader2 className="animate-spin"/> : <Sparkles/>}Auto-Write Message with AI</Button>
           <Label htmlFor="regards">Warm regards / MR name (optional)</Label><Input id="regards" placeholder="Luckey Kumar" maxLength={100} value={g.regards} onChange={(e) => update("regards", e.target.value)}/>
+        </fieldset>
+        <fieldset className="space-y-3 border-t border-border pt-5"><legend className="text-lg font-bold">Feature Biorica Products / Brands (Optional)</legend>
+          <div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">{g.products.length}/3 selected</span><Button type="button" variant="outline" size="sm" onClick={() => update("products", [])} aria-pressed={!g.products.length}>None</Button></div>
+          <Input aria-label="Find Biorica products" placeholder="Find a brand…" value={productSearch} onChange={(e) => setProductSearch(e.target.value)}/>
+          <div className="max-h-48 space-y-2 overflow-auto">{catalog?.products.filter((p) => p.brand_name.toLowerCase().includes(productSearch.toLowerCase())).map((p) => { const selected = g.products.some((s) => s.id === p.id); return <Label key={p.id} className="flex items-center gap-3 py-1"><Checkbox aria-label={`Feature ${p.brand_name}`} checked={selected} disabled={!selected && g.products.length === 3} onCheckedChange={(checked) => update("products", checked === true ? [...g.products, { id: p.id, brand_name: p.brand_name, pack_image_url: p.pack_image_url }].slice(0, 3) : g.products.filter((s) => s.id !== p.id))}/><span className="min-w-0 break-words">{p.brand_name}</span></Label>; })}</div>
+          {g.products.length > 0 && <div className="grid grid-cols-2 gap-2"><Button type="button" variant={g.productDisplay === "text" ? "teal" : "outline"} onClick={() => update("productDisplay", "text")}>Brand text strip</Button><Button type="button" variant={g.productDisplay === "packs" ? "teal" : "outline"} onClick={() => update("productDisplay", "packs")}>Mini pack thumbnails</Button></div>}
         </fieldset>
         <fieldset className="space-y-3 border-t border-border pt-5"><legend className="text-lg font-bold">Design & format</legend>
           <Label htmlFor="greeting-style">Design style</Label><select id="greeting-style" className={selectClass} value={g.style} onChange={(e) => { const style = GREETING_STYLES.find((s) => s === e.target.value); if (style) update("style", style); }}>{GREETING_STYLES.map((s) => <option key={s}>{s}</option>)}</select>

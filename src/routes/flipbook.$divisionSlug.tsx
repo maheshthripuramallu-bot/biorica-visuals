@@ -10,7 +10,7 @@ export const Route = createFileRoute("/flipbook/$divisionSlug")({
     product: typeof search["product"] === "string" ? search["product"] : undefined,
   }),
   loader: async ({ context, params }) => {
-    const catalog = await context.queryClient.ensureQueryData(catalogQuery);
+    const catalog = await context.queryClient.fetchQuery({ ...catalogQuery, staleTime: 0 });
     const division = resolveDivision(catalog, params.divisionSlug);
     if (!division) throw notFound();
     return { name: division.name };

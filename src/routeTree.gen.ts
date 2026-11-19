@@ -18,6 +18,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedManageRouteImport } from './routes/_authenticated/manage'
 import { Route as DivisionsIndexRouteImport } from './routes/divisions.index'
 import { Route as DivisionsSlugRouteImport } from './routes/divisions.$slug'
+import { Route as FlipbookIndexRouteImport } from './routes/flipbook.index'
 import { Route as FlipbookDivisionSlugRouteImport } from './routes/flipbook.$divisionSlug'
 import { Route as ApiPublicMediaSplatRouteImport } from './routes/api/public/media.$'
 
@@ -65,6 +66,11 @@ const DivisionsSlugRoute = DivisionsSlugRouteImport.update({
   path: '/divisions/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FlipbookIndexRoute = FlipbookIndexRouteImport.update({
+  id: '/flipbook/',
+  path: '/flipbook/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FlipbookDivisionSlugRoute = FlipbookDivisionSlugRouteImport.update({
   id: '/flipbook/$divisionSlug',
   path: '/flipbook/$divisionSlug',
@@ -86,6 +92,7 @@ export interface FileRoutesByFullPath {
   '/divisions/$slug': typeof DivisionsSlugRoute
   '/flipbook/$divisionSlug': typeof FlipbookDivisionSlugRoute
   '/divisions/': typeof DivisionsIndexRoute
+  '/flipbook/': typeof FlipbookIndexRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
 }
 export interface FileRoutesByTo {
@@ -98,6 +105,7 @@ export interface FileRoutesByTo {
   '/divisions/$slug': typeof DivisionsSlugRoute
   '/flipbook/$divisionSlug': typeof FlipbookDivisionSlugRoute
   '/divisions': typeof DivisionsIndexRoute
+  '/flipbook': typeof FlipbookIndexRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
 }
 export interface FileRoutesById {
@@ -112,6 +120,7 @@ export interface FileRoutesById {
   '/divisions/$slug': typeof DivisionsSlugRoute
   '/flipbook/$divisionSlug': typeof FlipbookDivisionSlugRoute
   '/divisions/': typeof DivisionsIndexRoute
+  '/flipbook/': typeof FlipbookIndexRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
 }
 export interface FileRouteTypes {
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '/divisions/$slug'
     | '/flipbook/$divisionSlug'
     | '/divisions/'
+    | '/flipbook/'
     | '/api/public/media/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/divisions/$slug'
     | '/flipbook/$divisionSlug'
     | '/divisions'
+    | '/flipbook'
     | '/api/public/media/$'
   id:
     | '__root__'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/divisions/$slug'
     | '/flipbook/$divisionSlug'
     | '/divisions/'
+    | '/flipbook/'
     | '/api/public/media/$'
   fileRoutesById: FileRoutesById
 }
@@ -163,6 +175,7 @@ export interface RootRouteChildren {
   DivisionsSlugRoute: typeof DivisionsSlugRoute
   FlipbookDivisionSlugRoute: typeof FlipbookDivisionSlugRoute
   DivisionsIndexRoute: typeof DivisionsIndexRoute
+  FlipbookIndexRoute: typeof FlipbookIndexRoute
   ApiPublicMediaSplatRoute: typeof ApiPublicMediaSplatRoute
 }
 
@@ -231,6 +244,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DivisionsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/flipbook/': {
+      id: '/flipbook/'
+      path: '/flipbook'
+      fullPath: '/flipbook/'
+      preLoaderRoute: typeof FlipbookIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/flipbook/$divisionSlug': {
       id: '/flipbook/$divisionSlug'
       path: '/flipbook/$divisionSlug'
@@ -270,6 +290,7 @@ const rootRouteChildren: RootRouteChildren = {
   DivisionsSlugRoute: DivisionsSlugRoute,
   FlipbookDivisionSlugRoute: FlipbookDivisionSlugRoute,
   DivisionsIndexRoute: DivisionsIndexRoute,
+  FlipbookIndexRoute: FlipbookIndexRoute,
   ApiPublicMediaSplatRoute: ApiPublicMediaSplatRoute,
 }
 export const routeTree = rootRouteImport

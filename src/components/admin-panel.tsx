@@ -15,6 +15,7 @@ import { parseProductCsv, productInput } from "@/lib/admin-import";
 import { mediaUrl, randomFileName } from "@/lib/media";
 import { compressImage, dataUrlToBlob, slugify } from "@/lib/canvas";
 import { pdfSlides } from "@/lib/pdf-slides";
+import { CompanyBranding } from "./company-branding";
 
 const emptyDivision = { name: "", slug: "", therapy_tag: "", description: "", display_order: 0 };
 const emptyProduct = { division_id: "", brand_name: "", composition: "", dosage_form: "Tablets", indications: [] as string[], pack_image_url: null as string | null, is_top_product: false, is_upcoming: false };
@@ -80,7 +81,8 @@ export function AdminPanel() {
   const products = catalog.products.filter((p) => `${p.brand_name} ${p.composition}`.toLowerCase().includes(query.toLowerCase()));
   return <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
     <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-semibold text-teal">Biorica Sciences Pvt Ltd</p><h1 className="mt-1 text-3xl font-extrabold">Catalog administration</h1></div><p className="text-sm text-muted-foreground">{catalog.divisions.length} divisions · {catalog.products.length} products · {catalog.visualAids.length} visual aids</p></div>
-    <Tabs defaultValue="products" className="mt-8"><TabsList className="h-auto flex-wrap"><TabsTrigger value="products">Products</TabsTrigger><TabsTrigger value="divisions">Divisions</TabsTrigger><TabsTrigger value="import">CSV import</TabsTrigger><TabsTrigger value="slides">Official slides</TabsTrigger></TabsList>
+    <Tabs defaultValue="products" className="mt-8"><TabsList className="h-auto flex-wrap"><TabsTrigger value="products">Products</TabsTrigger><TabsTrigger value="divisions">Divisions</TabsTrigger><TabsTrigger value="import">CSV import</TabsTrigger><TabsTrigger value="slides">Official slides</TabsTrigger><TabsTrigger value="branding">Company branding</TabsTrigger></TabsList>
+      <TabsContent value="branding" className="mt-6"><CompanyBranding/></TabsContent>
       <TabsContent value="products" className="mt-6"><div className="flex flex-wrap gap-3"><Input aria-label="Search products" placeholder="Search brands or compositions" value={query} onChange={(e) => setQuery(e.target.value)} className="max-w-md"/><Button onClick={() => editProduct()}><Plus/>Add product</Button></div>
         <div className="mt-5 divide-y divide-border">{products.map((p) => <div key={p.id} className="flex items-start gap-3 py-4"><div className="min-w-0 flex-1"><p className="font-bold">{p.brand_name}</p><p className="mt-1 break-words text-sm text-muted-foreground">{p.composition}</p><p className="mt-1 text-xs text-teal-strong">{catalog.divisions.find((d) => d.id === p.division_id)?.name} · {p.dosage_form}</p></div><Button variant="ghost" size="icon" title="Edit product" aria-label={`Edit ${p.brand_name}`} onClick={() => editProduct(p)}><Edit2/></Button><Button variant="ghost" size="icon" title="Delete product" aria-label={`Delete ${p.brand_name}`} onClick={() => setRemove({ table: "products", id: p.id, name: p.brand_name })}><Trash2/></Button></div>)}{!products.length && <p className="py-8 text-muted-foreground">No matching products.</p>}</div>
       </TabsContent>

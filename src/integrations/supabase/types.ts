@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      company_branding: {
+        Row: {
+          id: string
+          logo_url: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          logo_url: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          logo_url?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       divisions: {
         Row: {
           created_at: string
@@ -41,6 +59,36 @@ export type Database = {
           name?: string
           slug?: string
           therapy_tag?: string
+        }
+        Relationships: []
+      }
+      greeting_cards: {
+        Row: {
+          created_at: string
+          doctor_name: string
+          id: string
+          image_path: string
+          occasion: string
+          template: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          doctor_name: string
+          id?: string
+          image_path: string
+          occasion: string
+          template?: Json
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          doctor_name?: string
+          id?: string
+          image_path?: string
+          occasion?: string
+          template?: Json
+          user_id?: string
         }
         Relationships: []
       }

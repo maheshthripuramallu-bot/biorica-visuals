@@ -22,6 +22,13 @@
       "when": 1795094959883,
       "tag": "0002_restrict_role_function_access",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795095649166,
+      "tag": "0003_doctor_greetings_and_branding",
+      "breakpoints": true
     }
   ]
 }

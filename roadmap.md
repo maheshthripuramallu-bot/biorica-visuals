@@ -5,3 +5,8 @@
 - [x] Run tests, check preview errors and save changes.
 
 Email confirmation delivery and Google/Lovable provider handoff are configured but not exercised with a real mailbox/provider account.
+
+# Doctor greetings
+- [ ] Add studio tabs and greeting form with live preview and AI variations.
+- [ ] Add admin company logo and private greeting history.
+- [ ] Verify generation, download, save/reuse and mobile layout; commit changes.

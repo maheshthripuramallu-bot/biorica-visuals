@@ -74,6 +74,20 @@
 }
 
 :root {
+  --greeting-royal-paper: #0f2942;
+  --greeting-royal-ink: #ffffff;
+  --greeting-royal-accent: #e4c980;
+  --greeting-festive-paper: #fff7ed;
+  --greeting-festive-ink: #792b37;
+  --greeting-festive-accent: #b95020;
+  --greeting-clinical-paper: #ffffff;
+  --greeting-clinical-ink: #0f2942;
+  --greeting-clinical-accent: #0d9488;
+  --greeting-floral-paper: #fff5f8;
+  --greeting-floral-ink: #473148;
+  --greeting-floral-accent: #a74769;
+  --greeting-brand-paper: #ffffff;
+  --greeting-brand-ink: #0f2942;
   --radius: 0.75rem;
   --background: oklch(0.984 0.003 247.9); /* #F8FAFC */
   --foreground: oklch(0.275 0.056 249.8); /* #0F2942 */

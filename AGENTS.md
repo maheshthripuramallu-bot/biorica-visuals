@@ -32,3 +32,5 @@ use the editor.
 - Authenticated pages live under the client-only `_authenticated` gate; catalog writes use the authenticated browser client and database admin policies, so UI guards cannot bypass authorization.
 - Convert uploaded PDF visual aids to individual PNG pages with dynamically imported browser PDF.js, so every official page supports the same flipbook swipe and zoom gestures.
 - Validate the complete CSV before one bulk insert, so an invalid row cannot leave a partial catalog import.
+- Compose greeting text, portraits, and branding locally over AI-generated backgrounds using CSS palette tokens, so downloaded PNGs preserve exact doctor details and company identity.
+- Keep greeting history and its storage bucket owner-private; use expiring signed image URLs rather than the public catalog media proxy to protect doctor details.

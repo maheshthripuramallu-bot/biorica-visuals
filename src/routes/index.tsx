@@ -37,24 +37,35 @@ import { addBioricaFooter, compressImage, dataUrlToBlob, downloadDataUrl, slugif
 import { mediaUrl, randomFileName } from "@/lib/media";
 import { analyzePack, generateCreative, type PackAnalysis } from "@/lib/studio.functions";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GreetingStudio } from "@/components/greeting-studio";
 
 export const Route = createFileRoute("/")({
-  validateSearch: (search: Record<string, unknown>): { product?: string | undefined } => ({
+  validateSearch: (search: Record<string, unknown>): { product?: string | undefined; tab?: "greetings" | undefined } => ({
     product: typeof search["product"] === "string" ? search["product"] : undefined,
+    tab: search["tab"] === "greetings" ? "greetings" : undefined,
   }),
   head: () => ({
     meta: [
       { title: "AI Visual Aid Studio — Biorica Visuals" },
-      { name: "description", content: "Upload a Biorica product pack and auto-generate indications, USPs and doctor detailing visual aids." },
+      { name: "description", content: "Create Biorica product visual aids and personalized doctor greeting cards with AI, crisp PNG downloads and WhatsApp sharing." },
       { property: "og:title", content: "Biorica AI Visual Aid Studio" },
-      { property: "og:description", content: "Upload a product pack to generate doctor detailing creatives in seconds." },
+      { property: "og:description", content: "Create product detailing creatives and personalized doctor greeting cards with Biorica Sciences." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   loader: ({ context }) => context.queryClient.ensureQueryData(catalogQuery),
-  component: Studio,
+  component: StudioTabs,
 });
+
+function StudioTabs() {
+  const { tab, product } = Route.useSearch(); const navigate = useNavigate();
+  return <Tabs value={tab === "greetings" ? "greetings" : "products"} onValueChange={(value) => navigate({ to: "/", search: { product, tab: value === "greetings" ? "greetings" : undefined }, replace: true })}>
+    <div className="border-b border-border bg-card"><div className="mx-auto max-w-7xl px-4 py-4 sm:px-6"><TabsList className="grid h-auto w-full max-w-lg grid-cols-2"><TabsTrigger className="min-h-11 whitespace-normal text-center" value="products">Product Visual Aids</TabsTrigger><TabsTrigger className="min-h-11 whitespace-normal text-center" value="greetings">Doctor Greeting Cards</TabsTrigger></TabsList></div></div>
+    <TabsContent value="products" className="mt-0"><Studio/></TabsContent><TabsContent value="greetings" className="mt-0"><GreetingStudio/></TabsContent>
+  </Tabs>;
+}
 
 type PackImg = { id: string; dataUrl: string; name: string };
 type Creative = {

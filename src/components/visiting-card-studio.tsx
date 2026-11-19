@@ -17,7 +17,7 @@ import { companySettingsQuery, DEFAULT_COMPANY } from "@/lib/company";
 import { extractColors, resolveTheme } from "@/lib/themes";
 import { compressImage, dataUrlToBlob, downloadDataUrl, slugify } from "@/lib/canvas";
 import { companyLogoQuery } from "@/components/greeting-studio";
-import { CARD_TEMPLATES, DESIGNATIONS, MAX_CARD_BRANDS, renderCombined, renderSide, waNumber, type CardBrand, type QrTarget, type VisitingCard } from "@/lib/visiting-card";
+import { CARD_TEMPLATES, cardSize, DESIGNATIONS, type CardTemplate, type CornerStyle, MAX_CARD_BRANDS, renderCombined, renderSide, waNumber, type CardBrand, type QrTarget, type VisitingCard } from "@/lib/visiting-card";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_TAGLINE = "Advancing Science, Enriching Lives";
@@ -32,6 +32,8 @@ export function VisitingCardStudio() {
   const [tagline, setTagline] = useState(DEFAULT_TAGLINE);
   const [side, setSide] = useState<"front" | "back">("front");
   const [bleed, setBleed] = useState(false);
+  const [corners, setCorners] = useState<CornerStyle>("rounded");
+  const [thumbs, setThumbs] = useState<Partial<Record<CardTemplate, string>>>({});
   const [preview, setPreview] = useState({ front: "", back: "" });
   const [logoColors, setLogoColors] = useState<[string, string] | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -55,6 +57,14 @@ export function VisitingCardStudio() {
     }, 250);
     return () => { live = false; clearTimeout(id); };
   }, [card, brand]);
+  // Live mini-previews of every design using the current details.
+  useEffect(() => {
+    let live = true; const id = setTimeout(async () => {
+      for (const t of CARD_TEMPLATES) { const img = await renderSide("front", { ...card, template: t.value }, brand); if (!live) return; setThumbs((m) => ({ ...m, [t.value]: img })); }
+    }, 700);
+    return () => { live = false; clearTimeout(id); };
+  }, [card.fullName, card.designation, card.territory, card.phone, card.phone2, card.email, card.website, card.address, card.showPhoto, card.photo, brand]);
+  const size = cardSize(card.template); const vertical = card.template === "vertical";
 
   const saved = useQuery({ queryKey: ["visiting-cards", auth?.user?.id], enabled: !!auth?.user, queryFn: async () => {
     const { data, error } = await supabase.from("visiting_cards").select("id, full_name, designation, details, updated_at").order("updated_at", { ascending: false }).limit(50);
@@ -67,11 +77,11 @@ export function VisitingCardStudio() {
     try { for (const s of ["front", "back"] as const) downloadDataUrl(await renderSide(s, card, brand, bleed), `${fileBase}-${s}${bleed ? "-bleed" : ""}.png`); }
     finally { setBusy(null); }
   }
-  async function downloadCombined() { setBusy("combined"); try { downloadDataUrl(await renderCombined(card, brand), `${fileBase}-digital-card.png`); } finally { setBusy(null); } }
+  async function downloadCombined() { setBusy("combined"); try { downloadDataUrl(await renderCombined(card, brand, corners), `${fileBase}-digital-card.png`); } finally { setBusy(null); } }
   async function share() {
     setBusy("share");
     try {
-      const img = await renderCombined(card, brand); const file = new File([await dataUrlToBlob(img)], `${fileBase}-card.png`, { type: "image/png" });
+      const img = await renderCombined(card, brand, corners); const file = new File([await dataUrlToBlob(img)], `${fileBase}-card.png`, { type: "image/png" });
       const text = `${card.fullName}${card.designation ? `, ${card.designation}` : ""} — ${brand.companyName}${card.phone ? `\n${card.phone}` : ""}`;
       if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], text }); return; }
       downloadDataUrl(img, file.name); window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
@@ -124,13 +134,17 @@ export function VisitingCardStudio() {
             <ul className="max-h-44 space-y-0.5 overflow-y-auto rounded-md border border-border p-1.5">{catalog.products.map((p) => { const on = card.brands.includes(p.brand_name); const full = !on && card.brands.length >= MAX_CARD_BRANDS; return <li key={p.id}><label className={cn("flex cursor-pointer items-center gap-2 rounded p-1.5 text-sm hover:bg-accent", full && "cursor-not-allowed opacity-50")}><Checkbox checked={on} disabled={full} onCheckedChange={() => toggleBrand(p.brand_name)} />{p.brand_name}</label></li>; })}</ul></div>
 
           <h2 className="pt-2 text-lg font-bold text-primary">Design</h2>
-          <div className="grid grid-cols-2 gap-2">{CARD_TEMPLATES.map((t) => <button key={t.value} type="button" onClick={() => set("template", t.value)} className={cn("min-h-12 rounded-xl border p-2 text-xs font-semibold", card.template === t.value ? "border-teal bg-teal-soft/50 text-primary ring-2 ring-teal/20" : "border-border bg-card text-muted-foreground")}>{t.label}</button>)}</div>
+          <div className="grid grid-cols-2 gap-2">{CARD_TEMPLATES.map((t) => <button key={t.value} type="button" aria-pressed={card.template === t.value} onClick={() => set("template", t.value)} className={cn("flex flex-col items-center gap-1.5 rounded-xl border p-2 text-xs font-semibold", card.template === t.value ? "border-teal bg-teal-soft/50 text-primary ring-2 ring-teal/20" : "border-border bg-card text-muted-foreground")}>
+            <span className="grid h-20 w-full place-items-center">{thumbs[t.value] ? <img src={thumbs[t.value]} alt="" className={cn("max-h-20 max-w-full shadow-card", corners === "rounded" ? "rounded-md" : "rounded-none")} /> : <Loader2 className="size-4 animate-spin" />}</span>{t.label}</button>)}</div>
+          <div className="space-y-1.5"><Label>Corner style</Label><div className="grid grid-cols-2 rounded-lg border border-border bg-muted p-1">
+            {([["sharp", "Sharp Print Corners"], ["rounded", "Modern Rounded Corners"]] as [CornerStyle, string][]).map(([v, l]) => <button key={v} type="button" onClick={() => setCorners(v)} className={cn("min-h-9 rounded-md px-1 text-xs font-semibold", corners === v ? "bg-card text-primary shadow-card" : "text-muted-foreground")}>{l}</button>)}
+          </div></div>
         </section>
 
         <section className="min-w-0 space-y-4">
           <div className="flex items-center justify-between gap-2"><div className="grid grid-cols-2 rounded-lg border border-border bg-muted p-1">{(["front", "back"] as const).map((s) => <button key={s} type="button" onClick={() => setSide(s)} className={cn("min-h-9 rounded-md px-5 text-sm font-semibold capitalize", side === s ? "bg-card text-primary shadow-card" : "text-muted-foreground")}>{s}</button>)}</div>
-            <span className="text-xs text-muted-foreground">3.5 × 2 in · 1050 × 600 px @ 300 DPI</span></div>
-          <div className="grid place-items-center rounded-xl border border-border bg-muted p-4 sm:p-8">{preview[side] ? <img src={preview[side]} alt={`${side} of visiting card`} className="w-full max-w-[640px] rounded-xl shadow-elevated" /> : <div className="grid aspect-[7/4] w-full max-w-[640px] place-items-center rounded-xl bg-card"><Loader2 className="animate-spin text-muted-foreground" /></div>}</div>
+            <span className="text-xs text-muted-foreground">{vertical ? "2 × 3.5 in" : "3.5 × 2 in"} · {size.w} × {size.h} px @ 300 DPI</span></div>
+          <div className="grid place-items-center rounded-xl border border-border bg-muted p-4 sm:p-8">{preview[side] ? <img src={preview[side]} alt={`${side} of visiting card`} className={cn("w-full shadow-elevated", vertical ? "max-w-[300px]" : "max-w-[640px]", corners === "rounded" ? "rounded-xl" : "rounded-none")} /> : <div className="grid aspect-[7/4] w-full max-w-[640px] place-items-center rounded-xl bg-card"><Loader2 className="animate-spin text-muted-foreground" /></div>}</div>
           <Label className="flex items-center justify-between gap-3 rounded-md border border-border bg-card p-3 text-sm">Include 3mm print bleed & crop marks<Switch checked={bleed} onCheckedChange={setBleed} /></Label>
           <div className="grid gap-2 sm:grid-cols-2">
             <Button variant="outline" onClick={downloadSides} disabled={!!busy}>{busy === "print" ? <Loader2 className="animate-spin" /> : <Download />}Download Print-Ready PNG (Front & Back)</Button>

@@ -45,7 +45,7 @@ import { mediaUrl, randomFileName } from "@/lib/media";
 import { analyzePack, generateCreative, type PackAnalysis } from "@/lib/studio.functions";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GreetingStudio } from "@/components/greeting-studio";
+import { GreetingStudio, companyLogoQuery } from "@/components/greeting-studio";
 import { ProductPicker } from "@/components/product-picker";
 import { ClinicalBriefEditor } from "@/components/clinical-brief";
 
@@ -114,6 +114,7 @@ function Studio() {
   const [compliance, setCompliance] = useState<ComplianceFooter>("rmp");
   const [quality, setQuality] = useState<"fast" | "print">("fast");
   const { data: company } = useQuery(companySettingsQuery);
+  const { data: logoUrl = "" } = useQuery(companyLogoQuery);
   const [phase, setPhase] = useState<"idle" | "analyzing" | "brief" | "generating" | "done">("idle");
   const [analysis, setAnalysis] = useState<PackAnalysis | null>(null);
   const [creatives, setCreatives] = useState<Creative[]>([]);
@@ -244,6 +245,15 @@ function Studio() {
     setCreatives(batch);
     const packs = await catalogPackImages();
     const sendImages = [...images.map((i) => i.dataUrl), ...packs].slice(0, mode === "portfolio" ? 10 : 3);
+    let logoData: string | undefined;
+    if (type === "case_poster" && sendImages.length) {
+      try {
+        const r = await fetch(logoUrl || "/biorica-logo.png");
+        if (r.ok) logoData = await blobToDataUrl(await r.blob());
+      } catch {
+        /* footer still carries branding */
+      }
+    }
     const note = COMPLIANCE_FOOTERS.find((c) => c.value === compliance)?.text ?? "";
     const accent = matchPack && mode !== "portfolio" ? selectedProduct?.brand_color ?? undefined : undefined;
     await Promise.all(
@@ -254,6 +264,7 @@ function Studio() {
               images: sendImages,
               creativeType: type,
               artDirection,
+              ...(logoData ? { logo: logoData } : {}),
               ...(accent && /^#[0-9a-f]{6}$/i.test(accent) ? { brandColor: accent } : {}),
               productNames: mode === "portfolio" ? pickedProducts.map((p) => p.brand_name) : [],
               specialty,
@@ -266,6 +277,10 @@ function Studio() {
                 indications: result.indications,
                 usps: result.usps,
                 patient_persona: result.patient_persona,
+                patient_name: result.patient_name,
+                patient_age: result.patient_age,
+                patient_occupation: result.patient_occupation,
+                patient_symptoms: result.patient_symptoms,
                 how_it_works: result.how_it_works,
                 dosage_guide: result.dosage_guide,
                 prescribed_for: result.prescribed_for,

@@ -17,9 +17,14 @@ export function ClinicalBriefEditor({ brief, onChange }: Props) {
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5"><Label htmlFor="b-brand">Brand / portfolio title</Label><Input id="b-brand" value={brief.brand_name} onChange={(e) => set("brand_name", e.target.value)} /></div>
         <div className="space-y-1.5"><Label htmlFor="b-comp">Composition</Label><Input id="b-comp" value={brief.composition} onChange={(e) => set("composition", e.target.value)} /></div>
-        <div className="space-y-1.5"><Label htmlFor="b-head">Headline</Label><Input id="b-head" value={brief.headline} onChange={(e) => set("headline", e.target.value)} /></div>
+        <div className="space-y-1.5"><Label htmlFor="b-head">Headline (2 lines, split with |)</Label><Input id="b-head" value={brief.headline} onChange={(e) => set("headline", e.target.value)} /></div>
         <div className="space-y-1.5"><Label htmlFor="b-tag">Sub-line</Label><Input id="b-tag" value={brief.tagline} onChange={(e) => set("tagline", e.target.value)} /></div>
-        <div className="space-y-1.5 sm:col-span-2"><Label htmlFor="b-persona">Patient persona</Label><Input id="b-persona" value={brief.patient_persona} onChange={(e) => set("patient_persona", e.target.value)} /></div>
+        <div className="grid gap-3 sm:col-span-2 sm:grid-cols-3">
+          <div className="space-y-1.5"><Label htmlFor="b-pname">Patient name</Label><Input id="b-pname" value={brief.patient_name} onChange={(e) => set("patient_name", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label htmlFor="b-page">Age</Label><Input id="b-page" value={brief.patient_age} onChange={(e) => set("patient_age", e.target.value)} /></div>
+          <div className="space-y-1.5"><Label htmlFor="b-pocc">Occupation</Label><Input id="b-pocc" value={brief.patient_occupation} onChange={(e) => set("patient_occupation", e.target.value)} /></div>
+        </div>
+        <div className="space-y-1.5 sm:col-span-2"><Label htmlFor="b-symp">Symptoms / vitals (one per line, up to 5)</Label><Textarea id="b-symp" rows={4} value={brief.patient_symptoms.join("\n")} onChange={(e) => set("patient_symptoms", e.target.value.split("\n").map((x) => x.trim()).filter(Boolean).slice(0, 5))} /></div>
         <div className="space-y-1.5"><Label htmlFor="b-ind">Key indications (one per line)</Label><Textarea id="b-ind" rows={3} value={brief.indications.join("\n")} onChange={(e) => set("indications", lines(e.target.value))} /></div>
         <div className="space-y-1.5"><Label htmlFor="b-usp">USPs (one per line)</Label><Textarea id="b-usp" rows={3} value={brief.usps.join("\n")} onChange={(e) => set("usps", lines(e.target.value))} /></div>
       </div>

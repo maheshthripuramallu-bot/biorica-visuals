@@ -14,6 +14,10 @@ export type PackAnalysis = {
   indications: string[];
   usps: string[];
   patient_persona: string;
+  patient_name: string;
+  patient_age: string;
+  patient_occupation: string;
+  patient_symptoms: string[];
   how_it_works: string;
   dosage_guide: string;
   prescribed_for: string;
@@ -33,16 +37,19 @@ function friendlyError(err: unknown): never {
 const analysisSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["brand_name", "composition", "dosage_form", "headline", "tagline", "indications", "usps", "patient_persona", "how_it_works", "dosage_guide", "prescribed_for"],
+  required: ["brand_name", "composition", "dosage_form", "headline", "tagline", "indications", "usps", "patient_name", "patient_age", "patient_occupation", "patient_symptoms", "how_it_works", "dosage_guide", "prescribed_for"],
   properties: {
     brand_name: { type: "string", description: "Brand name exactly as printed on the pack, uppercase" },
     composition: { type: "string", description: "Full composition with strengths, e.g. 'Pregabalin 75 mg + Methylcobalamin 1500 mcg'" },
     dosage_form: { type: "string", enum: ["Tablets", "Capsules", "Nano Shots", "Softgels", "Syrup", "Sachets", "Other"] },
-    headline: { type: "string", description: "Short doctor-facing headline, max 8 words" },
+    headline: { type: "string", description: "Punchy 2-line clinical headline, max 10 words total, the two lines separated by ' | '" },
     tagline: { type: "string", description: "One-line positioning statement, max 14 words" },
     indications: { type: "array", items: { type: "string" }, description: "3 key clinical indications, max 6 words each" },
     usps: { type: "array", items: { type: "string" }, description: "3 crisp USPs, max 8 words each" },
-    patient_persona: { type: "string", description: "Short Indian patient persona, e.g. 'Mrs. Sharma, 52, homemaker — tingling feet for 6 months', max 20 words" },
+    patient_name: { type: "string", description: "Realistic Indian patient name, e.g. 'Mrs. Kavita Sharma'" },
+    patient_age: { type: "string", description: "Age, e.g. '52 years'" },
+    patient_occupation: { type: "string", description: "Occupation, e.g. 'School teacher'" },
+    patient_symptoms: { type: "array", items: { type: "string" }, description: "4–5 key symptoms or vitals relevant to the indication, max 6 words each, e.g. 'Vitamin D: 14 ng/mL'" },
     how_it_works: { type: "string", description: "How it works / mechanism in max 25 words" },
     dosage_guide: { type: "string", description: "Typical dosage guide, conservative, max 15 words; say 'As directed by the physician' if unsure" },
     prescribed_for: { type: "string", description: "Who it is prescribed for, max 15 words" },
@@ -97,9 +104,12 @@ export const analyzePack = createServerFn({ method: "POST" })
           for (const c of item.content) if (c.type === "output_text") out += c.text;
         }
       }
-      const parsed = JSON.parse(out) as PackAnalysis;
+      const parsed = JSON.parse(out) as Omit<PackAnalysis, "patient_persona">;
       return {
         ...parsed,
+        patient_symptoms: parsed.patient_symptoms.slice(0, 5),
+        patient_name: parsed.patient_name.replace(/\s*\((illustrative|fictional|hypothetical)[^)]*\)/gi, "").trim(),
+        patient_persona: `${parsed.patient_name}, ${parsed.patient_age}, ${parsed.patient_occupation}`,
         indications: parsed.indications.slice(0, 4),
         usps: parsed.usps.slice(0, 4),
       };
@@ -150,6 +160,7 @@ export const generateCreative = createServerFn({ method: "POST" })
         creativeType: z.enum(CREATIVE_TYPE_VALUES),
         artDirection: z.enum(["mnc", "3d", "swiss", "indian"]).default("mnc"),
         productNames: z.array(z.string().max(200)).max(10).default([]),
+        logo: dataUrl.optional(),
         brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
         specialty: z.string().max(100),
         variation: z.number().int().min(0).max(2),
@@ -161,6 +172,10 @@ export const generateCreative = createServerFn({ method: "POST" })
           indications: z.array(z.string().max(200)).max(4),
           usps: z.array(z.string().max(200)).max(4),
           patient_persona: z.string().max(400).default(""),
+          patient_name: z.string().max(120).default(""),
+          patient_age: z.string().max(40).default(""),
+          patient_occupation: z.string().max(120).default(""),
+          patient_symptoms: z.array(z.string().max(120)).max(5).default([]),
           how_it_works: z.string().max(600).default(""),
           dosage_guide: z.string().max(400).default(""),
           prescribed_for: z.string().max(400).default(""),
@@ -177,13 +192,26 @@ export const generateCreative = createServerFn({ method: "POST" })
       data.images.length
         ? "Use the supplied product pack photo as the hero product. Reproduce the pack faithfully — keep its shape, colours, logo and printed text unchanged. Do not invent a different pack."
         : `Show an elegant, generic pharmaceutical pack labelled "${a.brand_name}".`,
-      `Headline text: "${a.headline}"`,
+      a.headline.includes("|")
+        ? `Headline on two lines — line 1: "${a.headline.split("|")[0]!.trim()}", line 2: "${a.headline.split("|").slice(1).join(" ").trim()}". Never print a "|" character.`
+        : `Headline text: "${a.headline}"`,
       `Sub-line text: "${a.tagline}"`,
       `Composition text (small, clearly legible): "${a.composition}"`,
       `Key indications as short bullets: ${a.indications.map((i) => `"${i}"`).join(", ")}.`,
       `USP highlights: ${a.usps.map((u) => `"${u}"`).join(", ")}.`,
       portfolio ? `Brands to show (each pack clearly, names spelled exactly): ${data.productNames.map((n) => `"${n}"`).join(", ")}.` : "",
-      a.patient_persona && ["case_poster", "awareness"].includes(data.creativeType) ? `Patient persona card text: "${a.patient_persona}"` : "",
+      a.patient_name && ["case_poster", "awareness"].includes(data.creativeType)
+        ? `Patient profile card text: "${a.patient_name}" · "${a.patient_age}" · "${a.patient_occupation}"; symptoms/vitals: ${a.patient_symptoms.map((x) => `"${x}"`).join(", ")}.`
+        : "",
+      data.creativeType === "case_poster" && !portfolio
+        ? [
+            "POSTER STRUCTURE (top to bottom):",
+            `1) Deep branded header band in the brand colour${data.logo ? " with the supplied Biorica Sciences logo (the LAST reference image) reproduced exactly at top-left" : ""}, and the two-line headline (split at ' | ') in bold white type.`,
+            `2) Very large 3D embossed brand name "${a.brand_name}" matching the pack's typography and colours.`,
+            "3) Mid-section: photorealistic Indian doctor-patient consultation in a modern clinic; a clean patient profile card overlaid on the left; on the right, the exact supplied product box plus its blister strip or bottle standing on the clinic desk.",
+            "4) Bottom: clean 3-column clinical infographic with medical line icons titled 'HOW IT WORKS', 'DOSAGE GUIDE', 'PRESCRIBED FOR' using the texts below.",
+          ].join("\n")
+        : "",
       a.how_it_works ? `How It Works: "${a.how_it_works}"` : "",
       a.dosage_guide ? `Dosage Guide: "${a.dosage_guide}"` : "",
       a.prescribed_for ? `Prescribed For: "${a.prescribed_for}"` : "",
@@ -193,7 +221,7 @@ export const generateCreative = createServerFn({ method: "POST" })
         ? `Palette: match the product pack — use ${data.brandColor} as the dominant brand colour for headline accents, borders, icons and highlight shapes, paired with dark neutral typography and white space. Do not use teal unless it is the pack colour. Crisp sans-serif type, soft shadows. Spell every word exactly as given. No fake statistics, no QR codes.`
         : "",
       data.brandColor ? "" : "Palette: deep navy (#0F2942) typography, clinical teal (#0D9488) accents, crisp sans-serif type, soft shadows. Spell every word exactly as given. No fake statistics, no QR codes.",
-      "Do not draw any company logo or invented logo mark — official branding is added in the footer later.",
+      data.logo ? "Use only the supplied logo image for company branding; never invent another logo mark." : "Do not draw any company logo or invented logo mark — official branding is added in the footer later.",
       "Keep the bottom 9% of the canvas as plain empty white space — no text or graphics there (a footer is added later).",
     ].filter(Boolean).join("\n");
     try {
@@ -201,7 +229,7 @@ export const generateCreative = createServerFn({ method: "POST" })
       const res = data.images.length
         ? await editImage({
             model: "openai/gpt-image-2.5-sunburst",
-            image: data.images.map(dataUrlToBlob),
+            image: [...data.images, ...(data.logo ? [data.logo] : [])].map(dataUrlToBlob),
             prompt,
             size,
             quality: "medium",

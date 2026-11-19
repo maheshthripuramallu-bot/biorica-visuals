@@ -76,6 +76,22 @@ export const ART_DIRECTIONS = [
 ] as const;
 export type ArtDirection = (typeof ART_DIRECTIONS)[number]["value"];
 
+export const DETAILING_FOCUS = [
+  { value: "auto", label: "Auto (Balanced)", hint: "Balances pack, benefits and indications" },
+  { value: "indication", label: "Indication Focus", hint: "Target conditions, symptoms and relief" },
+  { value: "usp", label: "USP & Key Benefits Focus", hint: "Formulation advantages, efficacy, safety, quality" },
+  { value: "specialty", label: "Specialty Focus", hint: "Tone and callouts for the chosen specialty" },
+  { value: "composition", label: "Composition & Synergy Focus", hint: "Actives, strengths and how they work together" },
+  { value: "dosage", label: "Dosage & Compliance Focus", hint: "Convenience, dosing, absorption, adherence" },
+  { value: "recall", label: "Brand Recall & Pack Hero", hint: "Minimal text, maximum pack prominence" },
+] as const;
+export type DetailingFocus = (typeof DETAILING_FOCUS)[number]["value"];
+export const DETAILING_FOCUS_VALUES = DETAILING_FOCUS.map((f) => f.value) as [DetailingFocus, ...DetailingFocus[]];
+/** Clicking the active chip again returns to Auto. */
+export function toggleFocus(current: DetailingFocus, clicked: DetailingFocus): DetailingFocus {
+  return current === clicked ? "auto" : clicked;
+}
+
 export const COMPLIANCE_FOOTERS = [
   { value: "rmp", label: "For Registered Medical Practitioners Only", text: "For the use of Registered Medical Practitioners only" },
   { value: "nutra", label: "Nutraceutical — Not for Medicinal Use", text: "Nutraceutical — Not for Medicinal Use" },

@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { CREATIVE_TYPES, CREATIVE_TYPE_VALUES } from "./catalog";
+import { CREATIVE_TYPES, CREATIVE_TYPE_VALUES, DETAILING_FOCUS_VALUES } from "./catalog";
 import { editImage, generateImage, generateResponse, GatewayError } from "@lovable.dev/ai-gateway";
 
 const dataUrl = z.string().regex(/^data:image\/(png|jpeg|jpg|webp);base64,/).max(4_000_000);
@@ -143,6 +143,16 @@ const ART: Record<string, string> = {
   indian: "Art direction: warm Indian clinic lifestyle, natural light, relatable Indian doctors and patients.",
 };
 
+const FOCUS: Record<string, (specialty: string) => string> = {
+  auto: () => "",
+  indication: () => "DETAILING FOCUS — Indication: the headline and bullet callouts lead with the target conditions, key symptoms and therapeutic relief; indications get the largest text after the headline; pack secondary.",
+  usp: () => "DETAILING FOCUS — USP & Key Benefits: the headline states the strongest formulation advantage; USPs become the dominant icon-led callouts (efficacy, safety, quality edge); indications minimal.",
+  specialty: (s) => `DETAILING FOCUS — Specialty: tailor headline, tone, terminology and callouts specifically for a ${s}, with visual cues relevant to that specialty's practice.`,
+  composition: () => "DETAILING FOCUS — Composition & Synergy: the exact active ingredients and strengths are displayed prominently as labelled ingredient blocks, with simple connectors showing how the combination works together; headline speaks to the synergy.",
+  dosage: () => "DETAILING FOCUS — Dosage & Compliance: the headline and callouts emphasise patient convenience, simple dosing, absorption technology (e.g. SR or nano-shot if relevant to the dosage form) and adherence; use a clear dosing icon. Never invent a dose not given.",
+  recall: () => "DETAILING FOCUS — Brand Recall & Pack Hero: minimal text — only the brand name, the headline and at most one short line; the product pack is very large and dominates the composition for instant doctor recall; omit bullet lists.",
+};
+
 function dataUrlToBlob(url: string): Blob {
   const [meta, b64] = url.split(",");
   const mime = meta?.match(/data:(.*?);/)?.[1] ?? "image/png";
@@ -159,6 +169,7 @@ export const generateCreative = createServerFn({ method: "POST" })
         images: z.array(dataUrl).max(10),
         creativeType: z.enum(CREATIVE_TYPE_VALUES),
         artDirection: z.enum(["mnc", "3d", "swiss", "indian"]).default("mnc"),
+        focus: z.enum(DETAILING_FOCUS_VALUES).default("auto"),
         productNames: z.array(z.string().max(200)).max(10).default([]),
         logo: dataUrl.optional(),
         brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
@@ -216,7 +227,7 @@ export const generateCreative = createServerFn({ method: "POST" })
       a.dosage_guide ? `Dosage Guide: "${a.dosage_guide}"` : "",
       a.prescribed_for ? `Prescribed For: "${a.prescribed_for}"` : "",
       ["slide", "poster", "whatsapp"].includes(data.creativeType) && !portfolio ? LAYOUTS[data.variation % LAYOUTS.length] : `Variation ${data.variation + 1}: vary composition and camera angle.`,
-      ART[data.artDirection],
+      data.creativeType === "case_poster" ? ART[data.artDirection] : FOCUS[data.focus]?.(data.specialty) || ART[data.artDirection],
       data.brandColor
         ? `Palette: match the product pack — use ${data.brandColor} as the dominant brand colour for headline accents, borders, icons and highlight shapes, paired with dark neutral typography and white space. Do not use teal unless it is the pack colour. Crisp sans-serif type, soft shadows. Spell every word exactly as given. No fake statistics, no QR codes.`
         : "",

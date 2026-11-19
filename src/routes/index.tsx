@@ -35,6 +35,9 @@ import {
   clampVariations,
   CREATIVE_TYPES,
   ART_DIRECTIONS,
+  DETAILING_FOCUS,
+  toggleFocus,
+  type DetailingFocus,
   COMPLIANCE_FOOTERS,
   layoutModeFor,
   type ArtDirection,
@@ -115,6 +118,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
   const [showPhone, setShowPhone] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [artDirection, setArtDirection] = useState<ArtDirection>("mnc");
+  const [focus, setFocus] = useState<DetailingFocus>("auto");
   const [logoFinish, setLogoFinish] = useState<LogoFinishChoice>("auto");
   const [pickedSize, setLogoSize] = useState<LogoSize | null>(null);
   const [compliance, setCompliance] = useState<ComplianceFooter>("rmp");
@@ -279,6 +283,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
               images: sendImages,
               creativeType: type,
               artDirection,
+              ...(caseMode ? {} : { focus }),
               ...(logoData ? { logo: logoData } : {}),
               ...(accent && /^#[0-9a-f]{6}$/i.test(accent) ? { brandColor: accent } : {}),
               productNames: mode === "portfolio" ? pickedProducts.map((p) => p.brand_name) : [],
@@ -552,13 +557,26 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
               </div>
             </div>}
 
-            <div className="space-y-1.5">
+            {!caseMode && <div className="space-y-1.5">
+              <Label>Detailing Focus (Optional)</Label>
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Detailing focus">
+                {DETAILING_FOCUS.map((f) => (
+                  <button key={f.value} type="button" title={f.hint} aria-pressed={focus === f.value}
+                    onClick={() => setFocus((cur) => toggleFocus(cur, f.value))}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${focus === f.value ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:border-primary/50"}`}>
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground">{DETAILING_FOCUS.find((f) => f.value === focus)?.hint}</p>
+            </div>}
+            {caseMode && <div className="space-y-1.5">
               <Label>Visual art direction</Label>
               <Select value={artDirection} onValueChange={(v) => setArtDirection(v as ArtDirection)}>
                 <SelectTrigger className="h-11 bg-card"><SelectValue /></SelectTrigger>
                 <SelectContent>{ART_DIRECTIONS.map((a) => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}</SelectContent>
               </Select>
-            </div>
+            </div>}
             <LogoFinishSelect id="studio-logo-finish" value={logoFinish} onChange={setLogoFinish} />
             <LogoPicker value={logoChoice} onChange={setLogoChoice} dark />
             <LogoSizeSelect value={pickedSize ?? asLogoSize(company?.logo_size)} onChange={setLogoSize} />

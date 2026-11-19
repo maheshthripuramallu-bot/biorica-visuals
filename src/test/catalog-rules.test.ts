@@ -31,3 +31,10 @@ describe("Sign-in return path", () => {
 describe("Pack colour footer", () => {
   it("darkens the pack colour for the footer band", () => expect(shade("#9D174D", 0.5)).toBe("#4f0c27"));
 });
+
+import { toggleFocus, DETAILING_FOCUS } from "@/lib/catalog";
+describe("detailing focus", () => {
+  it("defaults list starts with Auto", () => expect(DETAILING_FOCUS[0].value).toBe("auto"));
+  it("clicking the active chip returns to Auto", () => expect(toggleFocus("usp", "usp")).toBe("auto"));
+  it("clicking another chip selects it", () => expect(toggleFocus("auto", "recall")).toBe("recall"));
+});

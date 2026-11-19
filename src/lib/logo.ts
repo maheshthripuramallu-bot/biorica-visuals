@@ -49,3 +49,15 @@ export function applyLogoFinish(src: string, finish: LogoFinish): Promise<string
   }).catch(() => src);
   cache.set(key, job); return job;
 }
+
+export const LOGO_SIZES = [
+  { value: "small", label: "Small", scale: 0.8 },
+  { value: "medium", label: "Medium", scale: 1 },
+  { value: "large", label: "Large", scale: 1.2 },
+] as const;
+export type LogoSize = (typeof LOGO_SIZES)[number]["value"];
+export const logoScale = (s: LogoSize = "medium") => LOGO_SIZES.find((x) => x.value === s)?.scale ?? 1;
+/** Contain-fit inside a box (never stretched or cropped), scaled by the user's size choice. */
+export function fitLogo(iw: number, ih: number, maxW: number, maxH: number, scale = 1) {
+  const r = Math.min(maxW / iw, maxH / ih) * scale; return { w: iw * r, h: ih * r };
+}

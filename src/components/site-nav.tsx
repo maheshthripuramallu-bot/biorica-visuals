@@ -24,7 +24,7 @@ export function BrandMark({ className }: { className?: string }) {
   const { data: logo } = useQuery(companyLogoQuery);
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <img src={logo || FALLBACK_LOGO} alt="Biorica Sciences" className="h-9 w-auto max-w-16 bg-transparent object-contain" />
+      <img src={logo || FALLBACK_LOGO} alt="Biorica Sciences" className="h-auto max-h-9 w-auto max-w-32 bg-transparent object-contain md:max-h-11 md:max-w-40" />
       <span className="leading-none">
         <span className="block font-display text-[15px] font-extrabold tracking-tight text-primary">Biorica</span>
         <span className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-teal">Visuals</span>

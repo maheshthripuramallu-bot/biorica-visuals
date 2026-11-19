@@ -7,7 +7,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { Download, History, Loader2, Save, Share2, Sparkles, Trash2, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
 import { applyLogoFinish, FALLBACK_LOGO, resolveFinish, type LogoFinishChoice } from "@/lib/logo";
-import { LogoFinishSelect } from "@/components/logo-finish-select";
+import { LogoFinishSelect, LogoSizeSelect } from "@/components/logo-finish-select";
+import { logoScale, type LogoSize } from "@/lib/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,7 +30,7 @@ const selectClass = "h-11 w-full rounded-md border border-input bg-card px-3 tex
 export function GreetingStudio() {
   const { data: auth } = useAuth(); const qc = useQueryClient();
   const { data: rawLogo = "" } = useQuery(companyLogoQuery); const { data: company = DEFAULT_COMPANY } = useQuery(companySettingsQuery);
-  const [logoFinish, setLogoFinish] = useState<LogoFinishChoice>("auto"); const [logo, setLogo] = useState("");
+  const [logoFinish, setLogoFinish] = useState<LogoFinishChoice>("auto"); const [logo, setLogo] = useState(""); const [logoSize, setLogoSize] = useState<LogoSize>("medium");
   // Footer band sits on light paper, so "auto" keeps the Admin default.
   useEffect(() => { let live = true; applyLogoFinish(rawLogo || FALLBACK_LOGO, resolveFinish(logoFinish, asFinish(company.logo_finish), false)).then((l) => { if (live) setLogo(l); }); return () => { live = false; }; }, [rawLogo, logoFinish, company.logo_finish]);
   const { data: catalog } = useSuspenseQuery(catalogQuery);
@@ -50,9 +51,9 @@ export function GreetingStudio() {
   }, staleTime: 5 * 60_000 });
   useEffect(() => {
     let active = true;
-    const timer = setTimeout(() => { renderGreeting(g, logo, "", 0, company).then((img) => { if (active) { setPreview(img); setPreviewError(""); } }).catch(() => { if (active) setPreviewError("Couldn't load the portrait or logo. Please choose another image."); }); }, 200);
+    const timer = setTimeout(() => { renderGreeting(g, logo, "", 0, company, "", logoScale(logoSize)).then((img) => { if (active) { setPreview(img); setPreviewError(""); } }).catch(() => { if (active) setPreviewError("Couldn't load the portrait or logo. Please choose another image."); }); }, 200);
     return () => { active = false; clearTimeout(timer); };
-  }, [g, logo, company]);
+  }, [g, logo, company, logoSize]);
   function update<K extends keyof Greeting>(key: K, value: Greeting[K]) { setG((prev) => ({ ...prev, [key]: value })); }
   function chooseOccasion(value: string) { setOccasion(value); const resolved = value === "Custom Occasion" ? "" : value; setG((prev) => ({ ...prev, occasion: resolved, headline: "", message: resolved ? defaultMessage(resolved) : "" })); }
   const signIn = <Button asChild variant="outline"><Link to="/auth" search={{ redirect: "/?tab=greetings" }}>Sign in for AI & saved history</Link></Button>;
@@ -65,7 +66,7 @@ export function GreetingStudio() {
       for (let i = 0; i < variationInput.parse(count); i++) {
         setProgress(`Creating variation ${i + 1} of ${count}…`);
         const background = await createBackground({ data: { occasion: current.occasion, style: current.style, format: current.format, variation: i } });
-        const image = await renderGreeting(current, logo, background, i, company);
+        const image = await renderGreeting(current, logo, background, i, company, "", logoScale(logoSize));
         setCards((prev) => [...prev, { id: crypto.randomUUID(), greeting: current, image, saved: false }]);
       }
       output.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -120,6 +121,7 @@ export function GreetingStudio() {
           <div className="flex flex-wrap gap-2">{["Birthday", "Wedding Anniversary", "Diwali", "National Doctor's Day"].map((o) => <Button type="button" size="sm" variant={occasion === o ? "teal" : "outline"} key={o} onClick={() => chooseOccasion(o)}>{o}</Button>)}</div>
           {occasion === "Custom Occasion" && <><Label htmlFor="custom-occasion">Custom occasion</Label><Input id="custom-occasion" required maxLength={100} value={g.occasion} onChange={(e) => update("occasion", e.target.value)}/></>}
           <LogoFinishSelect id="greeting-logo-finish" value={logoFinish} onChange={setLogoFinish} />
+          <LogoSizeSelect value={logoSize} onChange={setLogoSize} />
           <Label htmlFor="greeting-language">Language</Label><select id="greeting-language" className={selectClass} value={g.language} onChange={(e) => { const language = LANGUAGES.find((l) => l === e.target.value); if (language) update("language", language); }}>{LANGUAGES.map((language, i) => <option key={language} value={language}>{LANGUAGE_LABELS[i]}</option>)}</select>
           {g.language !== "English" && <Label className="flex items-center gap-2"><Checkbox checked={g.bilingual} onCheckedChange={(v) => update("bilingual", v === true)}/>Bilingual · regional headline + English message</Label>}
           <Label htmlFor="greeting-headline">Festival / occasion headline</Label><Input id="greeting-headline" maxLength={160} value={g.headline} onChange={(e) => update("headline", e.target.value)} placeholder={g.occasion}/>

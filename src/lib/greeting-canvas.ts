@@ -1,9 +1,10 @@
+import { fitLogo } from "@/lib/logo";
 import { loadImage } from "./canvas";
 import { DEFAULT_COMPANY, type CompanySettings } from "./company";
 import { greetingDimensions, LANGUAGE_FONTS, type Greeting } from "./greetings";
 
 // Canvas reads the same semantic palette as the page; typography is composed locally, never by AI.
-export async function renderGreeting(g: Greeting, logo = "", background = "", variation = 0, company: CompanySettings = DEFAULT_COMPANY, brandAccent = "") {
+export async function renderGreeting(g: Greeting, logo = "", background = "", variation = 0, company: CompanySettings = DEFAULT_COMPANY, brandAccent = "", logoScale = 1) {
   await document.fonts.ready;
   const family = `"${LANGUAGE_FONTS[g.language]}", "Plus Jakarta Sans", sans-serif`;
   await Promise.all([document.fonts.load(`500 32px ${family}`, g.headline + g.message + g.doctorName), document.fonts.load(`700 32px ${family}`, g.headline + g.doctorName)]);
@@ -70,7 +71,7 @@ export async function renderGreeting(g: Greeting, logo = "", background = "", va
   const inset = bandH * .12; let textX = left + inset * 1.5;
   try {
     const image = await loadImage(logo || "/biorica-logo.png"); const box = bandH - inset * 2;
-    const scale = Math.min(box * 1.6 / image.width, box / image.height), lw = image.width * scale, lh = image.height * scale;
+    const { w: lw, h: lh } = fitLogo(image.width, image.height, Math.min(box * 1.6, w * .3) / logoScale, Math.min(box, bandH * .96 / logoScale), logoScale);
     ctx.drawImage(image, textX, top + (bandH - lh) / 2, lw, lh); textX += lw + inset * 1.5;
   } catch { /* text-only footer */ }
   const maxW = right - inset * 1.5 - textX;

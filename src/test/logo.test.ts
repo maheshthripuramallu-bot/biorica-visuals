@@ -8,3 +8,9 @@ describe("logo transparency", () => {
   it("auto keeps original on light surfaces", () => expect(resolveFinish("auto", "original", false)).toBe("original"));
   it("an explicit choice wins", () => expect(resolveFinish("gold", "original", true)).toBe("gold"));
 });
+
+import { fitLogo as fit, logoScale as ls } from "@/lib/logo";
+describe("logo sizing", () => {
+  it("keeps aspect ratio inside the box", () => { const r = fit(400, 100, 200, 200); expect(r).toEqual({ w: 200, h: 50 }); });
+  it("Small/Medium/Large scale", () => { expect([ls("small"), ls("medium"), ls("large")]).toEqual([0.8, 1, 1.2]); });
+});

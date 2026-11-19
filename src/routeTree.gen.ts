@@ -10,33 +10,102 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SearchRouteImport } from './routes/search'
+import { Route as DivisionsIndexRouteImport } from './routes/divisions.index'
+import { Route as DivisionsSlugRouteImport } from './routes/divisions.$slug'
+import { Route as FlipbookDivisionSlugRouteImport } from './routes/flipbook.$divisionSlug'
+import { Route as ApiPublicMediaSplatRouteImport } from './routes/api/public/media.$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DivisionsIndexRoute = DivisionsIndexRouteImport.update({
+  id: '/divisions/',
+  path: '/divisions/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DivisionsSlugRoute = DivisionsSlugRouteImport.update({
+  id: '/divisions/$slug',
+  path: '/divisions/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FlipbookDivisionSlugRoute = FlipbookDivisionSlugRouteImport.update({
+  id: '/flipbook/$divisionSlug',
+  path: '/flipbook/$divisionSlug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicMediaSplatRoute = ApiPublicMediaSplatRouteImport.update({
+  id: '/api/public/media/$',
+  path: '/api/public/media/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/search': typeof SearchRoute
+  '/divisions/$slug': typeof DivisionsSlugRoute
+  '/flipbook/$divisionSlug': typeof FlipbookDivisionSlugRoute
+  '/divisions/': typeof DivisionsIndexRoute
+  '/api/public/media/$': typeof ApiPublicMediaSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/search': typeof SearchRoute
+  '/divisions/$slug': typeof DivisionsSlugRoute
+  '/flipbook/$divisionSlug': typeof FlipbookDivisionSlugRoute
+  '/divisions': typeof DivisionsIndexRoute
+  '/api/public/media/$': typeof ApiPublicMediaSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/search': typeof SearchRoute
+  '/divisions/$slug': typeof DivisionsSlugRoute
+  '/flipbook/$divisionSlug': typeof FlipbookDivisionSlugRoute
+  '/divisions/': typeof DivisionsIndexRoute
+  '/api/public/media/$': typeof ApiPublicMediaSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/search'
+    | '/divisions/$slug'
+    | '/flipbook/$divisionSlug'
+    | '/divisions/'
+    | '/api/public/media/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/search'
+    | '/divisions/$slug'
+    | '/flipbook/$divisionSlug'
+    | '/divisions'
+    | '/api/public/media/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/search'
+    | '/divisions/$slug'
+    | '/flipbook/$divisionSlug'
+    | '/divisions/'
+    | '/api/public/media/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SearchRoute: typeof SearchRoute
+  DivisionsSlugRoute: typeof DivisionsSlugRoute
+  FlipbookDivisionSlugRoute: typeof FlipbookDivisionSlugRoute
+  DivisionsIndexRoute: typeof DivisionsIndexRoute
+  ApiPublicMediaSplatRoute: typeof ApiPublicMediaSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +117,51 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/divisions/': {
+      id: '/divisions/'
+      path: '/divisions'
+      fullPath: '/divisions/'
+      preLoaderRoute: typeof DivisionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/divisions/$slug': {
+      id: '/divisions/$slug'
+      path: '/divisions/$slug'
+      fullPath: '/divisions/$slug'
+      preLoaderRoute: typeof DivisionsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/flipbook/$divisionSlug': {
+      id: '/flipbook/$divisionSlug'
+      path: '/flipbook/$divisionSlug'
+      fullPath: '/flipbook/$divisionSlug'
+      preLoaderRoute: typeof FlipbookDivisionSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/media/$': {
+      id: '/api/public/media/$'
+      path: '/api/public/media/$'
+      fullPath: '/api/public/media/$'
+      preLoaderRoute: typeof ApiPublicMediaSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SearchRoute: SearchRoute,
+  DivisionsSlugRoute: DivisionsSlugRoute,
+  FlipbookDivisionSlugRoute: FlipbookDivisionSlugRoute,
+  DivisionsIndexRoute: DivisionsIndexRoute,
+  ApiPublicMediaSplatRoute: ApiPublicMediaSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

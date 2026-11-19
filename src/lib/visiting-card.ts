@@ -68,8 +68,8 @@ function hexagon(ctx: CanvasRenderingContext2D, x: number, y: number, r: number)
 }
 function molecule(ctx: CanvasRenderingContext2D, x: number, y: number, color: string) {
   ctx.save(); ctx.strokeStyle = color; ctx.globalAlpha = 0.22; ctx.lineWidth = 1.5; const r = 34, dx = r * Math.sqrt(3);
-  for (const [i, j] of [[0, 0], [1, 0], [0.5, 1.5], [-0.5, 1.5], [1.5, 1.5], [0, 3]]) hexagon(ctx, x + i * dx, y + j * r, r);
-  ctx.fillStyle = color; for (const [i, j] of [[0, -1], [1, -1], [2, 1]]) { ctx.beginPath(); ctx.arc(x + i * dx, y + j * r, 5, 0, Math.PI * 2); ctx.fill(); } ctx.restore();
+  for (const [i, j] of [[0, 0], [1, 0], [0.5, 1.5], [-0.5, 1.5], [1.5, 1.5], [0, 3]] as const) hexagon(ctx, x + i * dx, y + j * r, r);
+  ctx.fillStyle = color; for (const [i, j] of [[0, -1], [1, -1], [2, 1]] as const) { ctx.beginPath(); ctx.arc(x + i * dx, y + j * r, 5, 0, Math.PI * 2); ctx.fill(); } ctx.restore();
 }
 function leaf(ctx: CanvasRenderingContext2D, x: number, y: number, len: number, angle: number, color: string) {
   ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.globalAlpha = 0.35;

@@ -51,7 +51,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GreetingStudio, companyLogoQuery } from "@/components/greeting-studio";
 import { ProductPicker } from "@/components/product-picker";
 import { VisitingCardStudio } from "@/components/visiting-card-studio";
-import { ClinicalBriefEditor } from "@/components/clinical-brief";
+import { ClinicalBriefEditor, ProductBriefEditor } from "@/components/clinical-brief";
 
 export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>): { product?: string | undefined; tab?: "greetings" | "case" | "cards" | undefined } => ({
@@ -527,7 +527,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
             {!caseMode && <div className="space-y-1.5">
               <Label>Creative type</Label>
               <div className="grid grid-cols-3 gap-2">
-                {CREATIVE_TYPES.map((t) => (
+                {CREATIVE_TYPES.filter((t) => t.value !== "case_poster").map((t) => (
                   <button
                     key={t.value}
                     type="button"
@@ -612,7 +612,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
             <>
               {phase === "analyzing" ? <AnalysisPanel analysis={null} loading /> : analysis && (
                 <>
-                  <ClinicalBriefEditor brief={analysis} onChange={setAnalysis} />
+                  {caseMode ? <ClinicalBriefEditor brief={analysis} onChange={setAnalysis} /> : <ProductBriefEditor brief={analysis} onChange={setAnalysis} />}
                   <Button variant="teal" size="xl" className="w-full" onClick={generateFinal} disabled={busy}>
                     {phase === "generating" ? <Loader2 className="animate-spin" /> : <Wand2 />} {caseMode ? "Generate Clinical Poster" : "Generate Final Visual"}
                   </Button>

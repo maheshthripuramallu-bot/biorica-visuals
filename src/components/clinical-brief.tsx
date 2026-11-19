@@ -5,6 +5,27 @@ import type { PackAnalysis } from "@/lib/studio.functions";
 
 type Props = { brief: PackAnalysis; onChange: (b: PackAnalysis) => void };
 
+export function ProductBriefEditor({ brief, onChange }: Props) {
+  const set = <K extends keyof PackAnalysis>(k: K, v: PackAnalysis[K]) => onChange({ ...brief, [k]: v });
+  const lines = (v: string) => v.split("\n").map((x) => x.trim()).filter(Boolean).slice(0, 4);
+  return (
+    <div className="space-y-4 p-5 surface-card sm:p-6 animate-fade-up">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal">Step 1 · Product brief</p>
+        <p className="mt-1 text-sm text-muted-foreground">Check every brand and molecule spelling — the image uses this text exactly.</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5"><Label htmlFor="b-brand">Brand / portfolio title</Label><Input id="b-brand" value={brief.brand_name} onChange={(e) => set("brand_name", e.target.value)} /></div>
+        <div className="space-y-1.5"><Label htmlFor="b-comp">Composition</Label><Input id="b-comp" value={brief.composition} onChange={(e) => set("composition", e.target.value)} /></div>
+        <div className="space-y-1.5"><Label htmlFor="b-head">Headline (2 lines, split with |)</Label><Input id="b-head" value={brief.headline} onChange={(e) => set("headline", e.target.value)} /></div>
+        <div className="space-y-1.5"><Label htmlFor="b-tag">Sub-line</Label><Input id="b-tag" value={brief.tagline} onChange={(e) => set("tagline", e.target.value)} /></div>
+        <div className="space-y-1.5"><Label htmlFor="b-ind">Key indications (one per line)</Label><Textarea id="b-ind" rows={3} value={brief.indications.join("\n")} onChange={(e) => set("indications", lines(e.target.value))} /></div>
+        <div className="space-y-1.5"><Label htmlFor="b-usp">USPs (one per line)</Label><Textarea id="b-usp" rows={3} value={brief.usps.join("\n")} onChange={(e) => set("usps", lines(e.target.value))} /></div>
+      </div>
+    </div>
+  );
+}
+
 export function ClinicalBriefEditor({ brief, onChange }: Props) {
   const set = <K extends keyof PackAnalysis>(k: K, v: PackAnalysis[K]) => onChange({ ...brief, [k]: v });
   const lines = (v: string) => v.split("\n").map((x) => x.trim()).filter(Boolean).slice(0, 4);

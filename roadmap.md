@@ -20,4 +20,6 @@ Verified Telugu bilingual AI generation, Malayalam full-regional AI messages, PN
 # Product pack management
 - [x] Add product-packs storage with public reads and admin-only writes (public bucket blocked by workspace policy).
 - [x] Add /manage, drag-and-drop editor, URL fallback, color extraction and quick row uploads.
-- [ ] Verify signed-in uploads, transparency and persisted previews.
+- [x] Verify signed-in uploads, transparency and persisted previews.
+
+Verified editor upload, brand-color extraction, quick row replacement, reload and removal with a temporary product (deleted after testing). Stored PNG bytes matched the original exactly; mobile layout checked and 16 upload/catalog tests passed. Public bucket creation remains blocked by workspace policy; product pack images are publicly accessible through the app's media URLs.

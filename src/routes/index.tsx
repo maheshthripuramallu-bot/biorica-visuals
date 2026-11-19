@@ -269,7 +269,7 @@ function Studio() {
   const viewerSlides: Slide[] = creatives
     .filter((c) => c.status === "done" && c.image)
     .map((c) => ({ key: c.id, label: `${analysis?.brand_name ?? "Creative"} · v${c.variation + 1}`, kind: "image", src: c.image }));
-  const typeMeta = CREATIVE_TYPES.find((t) => t.value === creativeType)!;
+  const typeMeta = CREATIVE_TYPES.find((t) => t.value === creativeType) ?? CREATIVE_TYPES[0];
 
   return (
     <main>
@@ -620,7 +620,7 @@ function CreativeCard({
   onSave: () => void;
   onFlipbook: () => void;
 }) {
-  const meta = CREATIVE_TYPES.find((t) => t.value === creative.type)!;
+  const meta = CREATIVE_TYPES.find((t) => t.value === creative.type) ?? CREATIVE_TYPES[0];
   const saved = creative.savedProductId !== undefined;
   return (
     <article className="overflow-hidden surface-card animate-fade-up">

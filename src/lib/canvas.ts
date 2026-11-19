@@ -57,7 +57,8 @@ export async function addBioricaFooter(src: string): Promise<string> {
   const canvas = document.createElement("canvas");
   canvas.width = img.naturalWidth;
   canvas.height = img.naturalHeight;
-  const ctx = canvas.getContext("2d")!;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Your browser couldn't create the image canvas.");
   ctx.drawImage(img, 0, 0);
   drawFooter(ctx, canvas.width, canvas.height);
   return canvas.toDataURL("image/png");
@@ -90,7 +91,8 @@ export async function renderProductCard(
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
-  const ctx = canvas.getContext("2d")!;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Your browser couldn't create the image canvas.");
   ctx.fillStyle = "#FFFFFF";
   ctx.fillRect(0, 0, w, h);
   // soft teal wash

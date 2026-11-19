@@ -171,8 +171,9 @@ export const generateCreative = createServerFn({ method: "POST" })
             output_format: "png",
           });
       const img = res.data?.[0];
-      if (!img?.b64_json && !img?.url) throw new Error("The AI didn't return an image. Please try again.");
-      return { image: img.b64_json ? `data:image/png;base64,${img.b64_json}` : img.url!, prompt };
+      const image = img?.b64_json ? `data:image/png;base64,${img.b64_json}` : img?.url;
+      if (!image) throw new Error("The AI didn't return an image. Please try again.");
+      return { image, prompt };
     } catch (err) {
       friendlyError(err);
     }

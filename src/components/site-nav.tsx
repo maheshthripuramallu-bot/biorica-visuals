@@ -1,6 +1,13 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ArrowUpRight, LayoutGrid, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
+import { toast } from "sonner";
 
 const NAV = [
   { to: "/", label: "AI Studio", short: "Studio", icon: Sparkles },
@@ -27,6 +34,16 @@ export function BrandMark({ className }: { className?: string }) {
 }
 
 export function TopNav() {
+  const { data: auth } = useAuth();
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  async function signOut() {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    const { error } = await supabase.auth.signOut();
+    if (error) { toast.error(error.message); return; }
+    navigate({ to: "/auth", replace: true });
+  }
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
   return (
@@ -72,6 +89,7 @@ export function TopNav() {
             Admin
           </Link>
         </nav>
+        {auth?.user ? <Button variant="ghost" size="icon" title="Sign out" aria-label="Sign out" onClick={signOut}><LogOut /></Button> : <Button asChild variant="ghost" size="sm"><Link to="/auth">Sign in</Link></Button>}
         <Link
           to="/admin"
           className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-primary md:hidden"

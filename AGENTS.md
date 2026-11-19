@@ -28,3 +28,7 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+- Authenticated pages live under the client-only `_authenticated` gate; catalog writes use the authenticated browser client and database admin policies, so UI guards cannot bypass authorization.
+- Convert uploaded PDF visual aids to individual PNG pages with dynamically imported browser PDF.js, so every official page supports the same flipbook swipe and zoom gestures.
+- Validate the complete CSV before one bulk insert, so an invalid row cannot leave a partial catalog import.

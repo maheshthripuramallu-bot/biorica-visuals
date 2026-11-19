@@ -254,14 +254,6 @@ function Studio() {
   }
 
   function openFlipbook(c: Creative, idx: number) {
-    if (c.savedProductId) {
-      const product = catalog.products.find((p) => p.id === c.savedProductId);
-      const div = product && catalog.divisions.find((d) => d.id === product.division_id);
-      if (div && product) {
-        navigate({ to: "/flipbook/$divisionSlug", params: { divisionSlug: div.slug }, search: { product: product.id } });
-        return;
-      }
-    }
     const doneIdx = creatives.filter((x) => x.status === "done").findIndex((x) => x.id === c.id);
     setViewer(doneIdx >= 0 ? doneIdx : idx);
   }
@@ -292,7 +284,7 @@ function Studio() {
 
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:gap-8">
         {/* Form */}
-        <section className="h-fit p-5 surface-card sm:p-6 lg:sticky lg:top-24">
+        <section className="min-w-0 h-fit p-5 surface-card sm:p-6 lg:sticky lg:top-24">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-primary">Product pack</h2>
             <span className="text-xs font-medium tabular-nums text-muted-foreground">
@@ -459,7 +451,7 @@ function Studio() {
               </div>
             </div>
 
-            <Button variant="teal" size="xl" className="w-full" onClick={generate} disabled={busy || compressing > 0}>
+            <Button variant="teal" size="xl" className="h-auto min-h-12 w-full whitespace-normal px-3 py-3 text-sm" onClick={generate} disabled={busy || compressing > 0}>
               {busy ? <Loader2 className="animate-spin" /> : <Wand2 />}
               {phase === "analyzing" ? "Reading the pack…" : phase === "generating" ? "Creating visual aids…" : "Auto-Generate Indications & Visual Aids"}
             </Button>

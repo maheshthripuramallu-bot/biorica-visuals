@@ -23,3 +23,8 @@ Verified Telugu bilingual AI generation, Malayalam full-regional AI messages, PN
 - [x] Verify signed-in uploads, transparency and persisted previews.
 
 Verified editor upload, brand-color extraction, quick row replacement, reload and removal with a temporary product (deleted after testing). Stored PNG bytes matched the original exactly; mobile layout checked and 16 upload/catalog tests passed. Public bucket creation remains blocked by workspace policy; product pack images are publicly accessible through the app's media URLs.
+
+# Downloads
+- [x] mr-downloads storage + download_files library (public reads, admin writes, counted downloads).
+- [x] Manage Downloads in /manage (any format, categories, division/brand tags, featured, replace, delete).
+- [x] Downloads page in nav with search, category/format chips, sorting, download + preview.

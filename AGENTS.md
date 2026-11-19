@@ -37,3 +37,4 @@ use the editor.
 - Themes write hex values onto the shared semantic CSS tokens at runtime (ThemeSync), so presets, logo-matched palettes and canvases all follow one source of truth.
 - Logo finishes (original/white/gold) are applied client-side to the transparent master logo via src/lib/logo.ts; never draw a plate or box behind the logo.
 - Product pack uploads preserve original image bytes in product-packs and use the public media proxy while workspace public buckets are blocked; both /manage and /admin reuse AdminPanel to keep editing behavior identical.
+- MR downloads live in the private mr-downloads bucket served via the public media proxy (?download= sets attachment); counts increment through a security-definer RPC so visitors never get UPDATE rights.

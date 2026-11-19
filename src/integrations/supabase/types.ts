@@ -107,6 +107,60 @@ export type Database = {
         }
         Relationships: []
       }
+      download_files: {
+        Row: {
+          brand_name: string | null
+          category: string
+          created_at: string
+          description: string | null
+          division_name: string | null
+          download_count: number
+          extension: string
+          file_name: string
+          file_path: string
+          file_size_bytes: number
+          file_type: string | null
+          file_url: string
+          id: string
+          is_featured: boolean
+          title: string
+        }
+        Insert: {
+          brand_name?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          division_name?: string | null
+          download_count?: number
+          extension?: string
+          file_name: string
+          file_path: string
+          file_size_bytes?: number
+          file_type?: string | null
+          file_url: string
+          id?: string
+          is_featured?: boolean
+          title: string
+        }
+        Update: {
+          brand_name?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          division_name?: string | null
+          download_count?: number
+          extension?: string
+          file_name?: string
+          file_path?: string
+          file_size_bytes?: number
+          file_type?: string | null
+          file_url?: string
+          id?: string
+          is_featured?: boolean
+          title?: string
+        }
+        Relationships: []
+      }
       greeting_cards: {
         Row: {
           created_at: string
@@ -291,6 +345,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_download_count: { Args: { _id: string }; Returns: number }
     }
     Enums: {
       app_role: "admin" | "user"

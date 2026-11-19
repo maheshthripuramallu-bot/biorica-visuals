@@ -1,6 +1,6 @@
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ArrowUpRight, BookOpen, LayoutGrid, Search, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowUpRight, BookOpen, FolderDown, LayoutGrid, Search, ShieldCheck, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useNavigate } from "@tanstack/react-router";
@@ -18,6 +18,7 @@ const NAV = [
   { to: "/", label: "AI Studio", short: "Studio", icon: Sparkles },
   { to: "/divisions", label: "Divisions", short: "Divisions", icon: LayoutGrid },
   { to: "/flipbook", label: "Flipbook", short: "Flipbook", icon: BookOpen },
+  { to: "/downloads", label: "Downloads", short: "Files", icon: FolderDown },
   { to: "/search", label: "360° Search", short: "Search", icon: Search },
 ] as const;
 
@@ -67,7 +68,7 @@ export function TopNav() {
               key={item.to}
               to={item.to}
               className={cn(
-                "inline-flex h-9 items-center gap-2 rounded-lg px-3.5 text-sm font-medium transition-colors",
+                "inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors",
                 isActive(item.to)
                   ? "bg-teal-soft text-teal-strong"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -109,7 +110,7 @@ export function BottomNav() {
   const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 pb-safe backdrop-blur-xl md:hidden">
-      <div className="mx-auto grid max-w-lg grid-cols-5">
+      <div className="mx-auto grid max-w-xl grid-cols-6">
         {items.map((item) => {
           const active = isActive(item.to);
           return (

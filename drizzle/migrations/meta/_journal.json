@@ -43,6 +43,13 @@
       "when": 1795102586649,
       "tag": "0005_themes_and_brand_colors",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795111693513,
+      "tag": "0006_create_visiting_cards",
+      "breakpoints": true
     }
   ]
 }

@@ -196,6 +196,36 @@ export type Database = {
         }
         Relationships: []
       }
+      visiting_cards: {
+        Row: {
+          created_at: string
+          designation: string
+          details: Json
+          full_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          designation?: string
+          details?: Json
+          full_name: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          designation?: string
+          details?: Json
+          full_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       visual_aids: {
         Row: {
           created_at: string

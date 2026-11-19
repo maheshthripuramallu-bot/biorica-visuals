@@ -33,7 +33,7 @@ export type VisitingCard = {
   website: string; address: string; showPhoto: boolean; photo: string; qr: QrTarget; brands: string[]; template: CardTemplate;
 };
 /** logo = finish for light surfaces, logoOnDark = finish for dark/coloured surfaces (both transparent, never boxed). */
-export type CardBrand = { companyName: string; tagline: string; logo: string; logoOnDark: string; primary: string; accent: string; logoPrimary: string; logoAccent: string; font: string; logoHeight?: number };
+export type CardBrand = { companyName: string; tagline: string; logo: string; logoOnDark: string; primary: string; accent: string; logoPrimary: string; logoAccent: string; font: string; logoHeight?: number; backLogo?: string | undefined; backLogoOnDark?: string | undefined };
 
 const esc = (s: string) => s.replace(/([\\;,])/g, "\\$1").replace(/\n/g, "\\n");
 export const digits = (s: string) => s.replace(/[^\d+]/g, "");
@@ -253,6 +253,7 @@ function cropMarks(ctx: CanvasRenderingContext2D, o: number, CW = CARD_W, CH = C
 }
 
 export async function renderSide(side: "front" | "back", c: VisitingCard, b: CardBrand, bleed = false) {
+  if (side === "back" && b.backLogo) b = { ...b, logo: b.backLogo, logoOnDark: b.backLogoOnDark ?? b.backLogo };
   if (typeof document !== "undefined" && document.fonts) await Promise.all([400, 500, 600, 700, 800].map((w) => document.fonts.load(`${w} 20px "${b.font}"`).catch(() => null)));
   const { w, h } = cardSize(c.template); const v = c.template === "vertical";
   const o = bleed ? BLEED + SLUG : 0; const cv = document.createElement("canvas");

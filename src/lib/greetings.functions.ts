@@ -3,6 +3,7 @@ import { generateResponse, generateImage, GatewayError } from "@lovable.dev/ai-g
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { createPublicClient } from "./supabase-public.server";
+import { normalizeLibrary } from "./logo-library";
 import { GREETING_STYLES, LANGUAGES } from "./greetings";
 
 function fail(error: unknown): never {
@@ -10,10 +11,16 @@ function fail(error: unknown): never {
   if (error instanceof GatewayError && error.code === "payment_required") throw new Error("AI credits are used up. Add credits to continue.");
   throw new Error("The AI could not finish this request. Your details are kept; please try again later.");
 }
+export const getLogoLibrary = createServerFn({ method: "GET" }).handler(async () => {
+  const { data, error } = await createPublicClient().from("company_branding").select("logo_url, logos, header_logo_slot").eq("id", "official").maybeSingle();
+  if (error) throw new Error("Couldn't load the company logos.");
+  return normalizeLibrary(data?.logos, data?.header_logo_slot, data?.logo_url);
+});
 export const getCompanyLogo = createServerFn({ method: "GET" }).handler(async () => {
-  const { data, error } = await createPublicClient().from("company_branding").select("logo_url").eq("id", "official").maybeSingle();
+  const { data, error } = await createPublicClient().from("company_branding").select("logo_url, logos, header_logo_slot").eq("id", "official").maybeSingle();
   if (error) throw new Error("Couldn't load the company logo.");
-  return data?.logo_url ?? "";
+  const lib = normalizeLibrary(data?.logos, data?.header_logo_slot, data?.logo_url);
+  return lib.slots[lib.header - 1]?.url || lib.slots.find((x) => x.url)?.url || "";
 });
 export const getCompanySettings = createServerFn({ method: "GET" }).handler(async () => {
   const { data, error } = await createPublicClient().from("company_branding").select("company_name, address, website, footer_text, company_phone, active_theme_id, custom_primary_color, custom_accent_color, custom_header_color, heading_font, body_font, logo_finish, logo_size").eq("id", "official").maybeSingle();

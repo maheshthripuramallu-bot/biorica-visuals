@@ -4,7 +4,8 @@ import { useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-quer
 import { Switch } from "@/components/ui/switch";
 import { asFinish, companySettingsQuery } from "@/lib/company";
 import { applyLogoFinish, asLogoSize, resolveFinish, type LogoFinishChoice, type LogoSize } from "@/lib/logo";
-import { LogoFinishSelect, LogoSizeSelect } from "@/components/logo-finish-select";
+import { LogoFinishSelect, LogoPicker, LogoSizeSelect, logoLibraryQuery } from "@/components/logo-finish-select";
+import { BLANK_LOGO, pickLogo, type LogoChoice } from "@/lib/logo-library";
 import { useServerFn } from "@tanstack/react-start";
 import {
   BookOpen,
@@ -120,6 +121,10 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
   const [quality, setQuality] = useState<"fast" | "print">("fast");
   const { data: company } = useQuery(companySettingsQuery);
   const { data: logoUrl = "" } = useQuery(companyLogoQuery);
+  const { data: logoLib } = useQuery(logoLibraryQuery);
+  const [logoChoice, setLogoChoice] = useState<LogoChoice>("auto");
+  // Header/footer bars are dark, so Auto prefers Logo 2 when uploaded.
+  const studioLogo = pickLogo(logoLib, logoChoice, true) || logoUrl || "/biorica-logo.png";
   const [phase, setPhase] = useState<"idle" | "analyzing" | "brief" | "generating" | "done">("idle");
   const [analysis, setAnalysis] = useState<PackAnalysis | null>(null);
   const [creatives, setCreatives] = useState<Creative[]>([]);
@@ -251,10 +256,10 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
     const packs = await catalogPackImages();
     const sendImages = [...images.map((i) => i.dataUrl), ...packs].slice(0, mode === "portfolio" ? 10 : 3);
     let logoData: string | undefined;
-    if (type === "case_poster" && sendImages.length) {
+    if (type === "case_poster" && sendImages.length && studioLogo !== BLANK_LOGO) {
       try {
         // Poster header is a dark brand band: "auto" renders the transparent logo in white there.
-        const finished = await applyLogoFinish(logoUrl || "/biorica-logo.png", resolveFinish(logoFinish, asFinish(company?.logo_finish), true));
+        const finished = await applyLogoFinish(studioLogo, resolveFinish(logoFinish, asFinish(company?.logo_finish), true));
         const r = await fetch(finished);
         if (r.ok) logoData = await blobToDataUrl(await r.blob());
       } catch {
@@ -263,7 +268,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
     }
     const logoSize = pickedSize ?? asLogoSize(company?.logo_size);
     // Footer bar is dark: "auto" shows the transparent logo in white.
-    const footerLogo = await applyLogoFinish(logoUrl || "/biorica-logo.png", resolveFinish(logoFinish, asFinish(company?.logo_finish), true)).catch(() => "");
+    const footerLogo = studioLogo === BLANK_LOGO ? "" : await applyLogoFinish(studioLogo, resolveFinish(logoFinish, asFinish(company?.logo_finish), true)).catch(() => "");
     const note = COMPLIANCE_FOOTERS.find((c) => c.value === compliance)?.text ?? "";
     const accent = matchPack && mode !== "portfolio" ? selectedProduct?.brand_color ?? undefined : undefined;
     await Promise.all(
@@ -555,6 +560,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
               </Select>
             </div>
             <LogoFinishSelect id="studio-logo-finish" value={logoFinish} onChange={setLogoFinish} />
+            <LogoPicker value={logoChoice} onChange={setLogoChoice} dark />
             <LogoSizeSelect value={pickedSize ?? asLogoSize(company?.logo_size)} onChange={setLogoSize} />
             <div className="space-y-1.5">
               <Label>Compliance footer</Label>

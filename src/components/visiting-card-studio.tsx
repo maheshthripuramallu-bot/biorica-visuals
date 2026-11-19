@@ -21,7 +21,8 @@ import { CARD_TEMPLATES, cardSize, DESIGNATIONS, type CardTemplate, type CornerS
 import { cn } from "@/lib/utils";
 import { applyLogoFinish, resolveFinish, type LogoFinishChoice } from "@/lib/logo";
 import { asFinish } from "@/lib/company";
-import { LogoFinishSelect, LogoSizeSelect } from "@/components/logo-finish-select";
+import { LogoFinishSelect, LogoPicker, LogoSizeSelect, logoLibraryQuery } from "@/components/logo-finish-select";
+import { pickLogo, type LogoChoice } from "@/lib/logo-library";
 import { asLogoSize, cardLogoHeight, type LogoSize } from "@/lib/logo";
 
 const DEFAULT_TAGLINE = "Advancing Science, Enriching Lives";
@@ -41,7 +42,9 @@ export function VisitingCardStudio() {
   const [preview, setPreview] = useState({ front: "", back: "" });
   const [pickedSize, setLogoSize] = useState<LogoSize | null>(null); const logoSize = pickedSize ?? asLogoSize(company.logo_size);
   const [finish, setFinish] = useState<LogoFinishChoice>("auto");
-  const [logos, setLogos] = useState<{ light: string; dark: string } | null>(null);
+  const [logos, setLogos] = useState<{ light: string; dark: string; backLight: string; backDark: string } | null>(null);
+  const { data: logoLib } = useQuery(logoLibraryQuery);
+  const [frontChoice, setFrontChoice] = useState<LogoChoice>("auto"); const [backChoice, setBackChoice] = useState<LogoChoice>("auto");
   const [logoColors, setLogoColors] = useState<[string, string] | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -52,14 +55,16 @@ export function VisitingCardStudio() {
   const logoSrc = logo || "/biorica-logo.png";
   useEffect(() => {
     const g = asFinish(company.logo_finish); let live = true;
-    Promise.all([applyLogoFinish(logoSrc, resolveFinish(finish, g, false)), applyLogoFinish(logoSrc, resolveFinish(finish, g, true))]).then(([light, dark]) => { if (live) setLogos({ light, dark }); });
+    // Auto uses Logo 1 on light surfaces and Logo 2 (if uploaded) on dark designs.
+    const src = (c: LogoChoice, dark: boolean) => pickLogo(logoLib, c, dark) || logoSrc;
+    Promise.all([applyLogoFinish(src(frontChoice, false), resolveFinish(finish, g, false)), applyLogoFinish(src(frontChoice, true), resolveFinish(finish, g, true)), applyLogoFinish(src(backChoice, false), resolveFinish(finish, g, false)), applyLogoFinish(src(backChoice, true), resolveFinish(finish, g, true))]).then(([light, dark, backLight, backDark]) => { if (live) setLogos({ light, dark, backLight, backDark }); });
     return () => { live = false; };
-  }, [logoSrc, finish, company.logo_finish]);
+  }, [logoSrc, finish, company.logo_finish, logoLib, frontChoice, backChoice]);
   useEffect(() => { extractColors(logoSrc).then(setLogoColors).catch(() => setLogoColors(null)); }, [logoSrc]);
 
   const brand: CardBrand = useMemo(() => {
     const t = resolveTheme(company);
-    return { companyName: company.company_name || DEFAULT_COMPANY.company_name, tagline, logo: logos?.light ?? logoSrc, logoOnDark: logos?.dark ?? logoSrc, primary: t.primary, accent: t.accent, logoPrimary: logoColors?.[0] ?? company.custom_primary_color, logoAccent: logoColors?.[1] ?? company.custom_accent_color, font: t.heading, logoHeight: cardLogoHeight(logoSize) };
+    return { companyName: company.company_name || DEFAULT_COMPANY.company_name, tagline, logo: logos?.light ?? logoSrc, logoOnDark: logos?.dark ?? logoSrc, backLogo: logos?.backLight, backLogoOnDark: logos?.backDark, primary: t.primary, accent: t.accent, logoPrimary: logoColors?.[0] ?? company.custom_primary_color, logoAccent: logoColors?.[1] ?? company.custom_accent_color, font: t.heading, logoHeight: cardLogoHeight(logoSize) };
   }, [company, tagline, logoSrc, logoColors, logos, logoSize]);
 
   useEffect(() => {
@@ -149,6 +154,8 @@ export function VisitingCardStudio() {
           <div className="grid grid-cols-2 gap-2">{CARD_TEMPLATES.map((t) => <button key={t.value} type="button" aria-pressed={card.template === t.value} onClick={() => set("template", t.value)} className={cn("flex flex-col items-center gap-1.5 rounded-xl border p-2 text-xs font-semibold", card.template === t.value ? "border-teal bg-teal-soft/50 text-primary ring-2 ring-teal/20" : "border-border bg-card text-muted-foreground")}>
             <span className="grid h-20 w-full place-items-center">{thumbs[t.value] ? <img src={thumbs[t.value]} alt="" className={cn("max-h-20 max-w-full shadow-card", corners === "rounded" ? "rounded-md" : "rounded-none")} /> : <Loader2 className="size-4 animate-spin" />}</span>{t.label}</button>)}</div>
           <LogoFinishSelect id="vc-logo-finish" value={finish} onChange={setFinish} />
+          <LogoPicker label="Front logo" value={frontChoice} onChange={setFrontChoice} />
+          <LogoPicker label="Back logo" value={backChoice} onChange={setBackChoice} />
           <LogoSizeSelect value={logoSize} onChange={setLogoSize} />
           <div className="space-y-1.5"><Label>Corner style</Label><div className="grid grid-cols-2 rounded-lg border border-border bg-muted p-1">
             {([["sharp", "Sharp Print Corners"], ["rounded", "Modern Rounded Corners"]] as [CornerStyle, string][]).map(([v, l]) => <button key={v} type="button" onClick={() => setCorners(v)} className={cn("min-h-9 rounded-md px-1 text-xs font-semibold", corners === v ? "bg-card text-primary shadow-card" : "text-muted-foreground")}>{l}</button>)}

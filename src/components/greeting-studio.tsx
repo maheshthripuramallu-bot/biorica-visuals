@@ -7,7 +7,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { Download, History, Loader2, Save, Share2, Sparkles, Trash2, RotateCcw, X } from "lucide-react";
 import { toast } from "sonner";
 import { applyLogoFinish, FALLBACK_LOGO, resolveFinish, type LogoFinishChoice } from "@/lib/logo";
-import { LogoFinishSelect, LogoSizeSelect } from "@/components/logo-finish-select";
+import { LogoFinishSelect, LogoPicker, LogoSizeSelect, logoLibraryQuery } from "@/components/logo-finish-select";
+import { pickLogo, type LogoChoice } from "@/lib/logo-library";
 import { asLogoSize, type LogoSize } from "@/lib/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,7 +30,8 @@ const selectClass = "h-11 w-full rounded-md border border-input bg-card px-3 tex
 
 export function GreetingStudio() {
   const { data: auth } = useAuth(); const qc = useQueryClient();
-  const { data: rawLogo = "" } = useQuery(companyLogoQuery); const { data: company = DEFAULT_COMPANY } = useQuery(companySettingsQuery);
+  const { data: headerLogo = "" } = useQuery(companyLogoQuery); const { data: logoLib } = useQuery(logoLibraryQuery);
+  const [logoChoice, setLogoChoice] = useState<LogoChoice>("auto"); const rawLogo = pickLogo(logoLib, logoChoice, false) || headerLogo; const { data: company = DEFAULT_COMPANY } = useQuery(companySettingsQuery);
   const [logoFinish, setLogoFinish] = useState<LogoFinishChoice>("auto"); const [logo, setLogo] = useState(""); const [pickedSize, setLogoSize] = useState<LogoSize | null>(null); const logoSize = pickedSize ?? asLogoSize(company.logo_size);
   // Footer band sits on light paper, so "auto" keeps the Admin default.
   useEffect(() => { let live = true; applyLogoFinish(rawLogo || FALLBACK_LOGO, resolveFinish(logoFinish, asFinish(company.logo_finish), false)).then((l) => { if (live) setLogo(l); }); return () => { live = false; }; }, [rawLogo, logoFinish, company.logo_finish]);
@@ -121,6 +123,7 @@ export function GreetingStudio() {
           <div className="flex flex-wrap gap-2">{["Birthday", "Wedding Anniversary", "Diwali", "National Doctor's Day"].map((o) => <Button type="button" size="sm" variant={occasion === o ? "teal" : "outline"} key={o} onClick={() => chooseOccasion(o)}>{o}</Button>)}</div>
           {occasion === "Custom Occasion" && <><Label htmlFor="custom-occasion">Custom occasion</Label><Input id="custom-occasion" required maxLength={100} value={g.occasion} onChange={(e) => update("occasion", e.target.value)}/></>}
           <LogoFinishSelect id="greeting-logo-finish" value={logoFinish} onChange={setLogoFinish} />
+          <LogoPicker value={logoChoice} onChange={setLogoChoice} />
           <LogoSizeSelect value={logoSize} onChange={setLogoSize} />
           <Label htmlFor="greeting-language">Language</Label><select id="greeting-language" className={selectClass} value={g.language} onChange={(e) => { const language = LANGUAGES.find((l) => l === e.target.value); if (language) update("language", language); }}>{LANGUAGES.map((language, i) => <option key={language} value={language}>{LANGUAGE_LABELS[i]}</option>)}</select>
           {g.language !== "English" && <Label className="flex items-center gap-2"><Checkbox checked={g.bilingual} onCheckedChange={(v) => update("bilingual", v === true)}/>Bilingual · regional headline + English message</Label>}

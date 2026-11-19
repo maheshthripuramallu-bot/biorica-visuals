@@ -1,0 +1,3 @@
+ALTER TABLE public.company_branding ADD COLUMN IF NOT EXISTS logos jsonb NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE public.company_branding ADD COLUMN IF NOT EXISTS header_logo_slot smallint NOT NULL DEFAULT 1 CHECK (header_logo_slot BETWEEN 1 AND 4);
+UPDATE public.company_branding SET logos = jsonb_build_array(jsonb_build_object('label','Primary / Horizontal Logo','url',logo_url)) WHERE logo_url IS NOT NULL AND logo_url <> '' AND logos = '[]'::jsonb;

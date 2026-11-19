@@ -8,16 +8,24 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { getCompanyLogo } from "@/lib/greetings.functions";
 import { companySettingsQuery, DEFAULT_COMPANY } from "@/lib/company";
+import { logoLibraryQuery } from "@/components/logo-finish-select";
+import { pickLogo, type LogoChoice } from "@/lib/logo-library";
 import { applyLogoFinish, asLogoSize, canvasLogoHeight, FALLBACK_LOGO } from "@/lib/logo";
 
 /** Stage is dark, so the transparent logo shows white; on-screen height is a fixed fraction of the canvas size table. */
 function FlipbookLogo() {
   const { data: raw } = useQuery({ queryKey: ["company-logo"], queryFn: () => getCompanyLogo(), staleTime: 60_000 });
   const { data: company = DEFAULT_COMPANY } = useQuery(companySettingsQuery);
-  const { data: src } = useQuery({ queryKey: ["flipbook-logo", raw], queryFn: () => applyLogoFinish(raw || FALLBACK_LOGO, "white") });
+  const { data: lib } = useQuery(logoLibraryQuery);
+  const [choice, setChoice] = useState<LogoChoice>("auto");
+  const options: LogoChoice[] = ["auto", ...(lib?.slots ?? []).flatMap((s, i) => (s.url ? [(i + 1) as LogoChoice] : [])), "none"];
+  const picked = pickLogo(lib, choice, true) || raw || FALLBACK_LOGO;
+  const { data: src } = useQuery({ queryKey: ["flipbook-logo", picked], queryFn: () => applyLogoFinish(picked, "white") });
   const h = canvasLogoHeight(asLogoSize(company.logo_size)) / 2.5;
+  const next = () => setChoice(options[(options.indexOf(choice) + 1) % options.length] ?? "auto");
+  if (choice === "none") return <button type="button" onClick={next} className="shrink-0 rounded-md border border-current/30 px-2 py-1 text-xs opacity-70">Show logo</button>;
   if (!src) return null;
-  return <img src={src} alt="Biorica Sciences" style={{ "--logo-h": `${h}px` } as CSSProperties} className="h-[calc(var(--logo-h)*0.7)] w-auto max-w-[40vw] shrink-0 bg-transparent object-contain sm:h-[var(--logo-h)]" />;
+  return <button type="button" onClick={next} title="Switch logo" aria-label="Switch logo" className="shrink-0 bg-transparent"><img src={src} alt="Biorica Sciences" style={{ "--logo-h": `${h}px` } as CSSProperties} className="h-[calc(var(--logo-h)*0.7)] w-auto max-w-[40vw] shrink-0 bg-transparent object-contain sm:h-[var(--logo-h)]" /></button>;
 }
 
 export type Slide = {

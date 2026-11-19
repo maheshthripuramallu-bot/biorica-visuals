@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileUp, Loader2, Pipette, Save } from "lucide-react";
+import { FileUp, Loader2, Pipette, Save, Trash2 } from "lucide-react";
+import { logoLibraryQuery } from "./logo-finish-select";
+import { SLOT_DEFAULTS, type LogoLibrary, type LogoSlot } from "@/lib/logo-library";
 import { CUSTOM_THEME_ID, extractColors, FONTS, HEX, readableOn, resolveTheme, THEMES, type ThemeSettings } from "@/lib/themes";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -84,26 +86,45 @@ function LogoSizeDefault() {
     <p className="text-xs text-muted-foreground">Starting size in every studio and the flipbook. Each design can still pick its own size.</p></div>;
 }
 
-export function CompanyBranding() {
-  const { data: logo } = useQuery(companyLogoQuery); const qc = useQueryClient();
+function LogoSlotEditor({ index, lib, save }: { index: number; lib: LogoLibrary; save: (slots: LogoSlot[], header?: number) => Promise<boolean> }) {
+  const slot = lib.slots[index]!; const n = index + 1;
+  const [label, setLabel] = useState(slot.label); useEffect(() => setLabel(slot.label), [slot.label]);
   const [source, setSource] = useState(""); const [threshold, setThreshold] = useState(DEFAULT_WHITE_THRESHOLD);
   const [cleaned, setCleaned] = useState(""); const [busy, setBusy] = useState(false);
   useEffect(() => { if (!source) { setCleaned(""); return; } let live = true; const id = setTimeout(() => { removeWhiteBackground(source, threshold).then(trimTransparent).then((d) => { if (live) setCleaned(d); }).catch(() => toast.error("Couldn't read that image.")); }, 120); return () => { live = false; clearTimeout(id); }; }, [source, threshold]);
-  return <div className="space-y-10"><CompanyDetails/><BrandTheme/><form className="max-w-xl space-y-4" onSubmit={async (event) => {
-    event.preventDefault(); if (!cleaned) return;
-    setBusy(true); const path = `branding/${randomFileName("png")}`; let uploaded = false;
+  const withSlot = (p: Partial<LogoSlot>) => lib.slots.map((x, i) => (i === index ? { ...x, ...p } : x));
+  async function upload() {
+    if (!cleaned) return; setBusy(true); const path = `branding/${randomFileName("png")}`;
     try {
-      const result = await supabase.storage.from("pack-images").upload(path, await dataUrlToBlob(cleaned), { contentType: "image/png" }); if (result.error) throw result.error; uploaded = true;
-      const { error } = await supabase.from("company_branding").upsert({ id: "official", logo_url: mediaUrl("pack-images", path), updated_at: new Date().toISOString() }); if (error) throw error;
-      await qc.invalidateQueries({ queryKey: ["company-logo"] }); setSource(""); toast.success("Transparent company logo saved");
-    } catch { if (uploaded) await supabase.storage.from("pack-images").remove([path]); toast.error("Couldn't update the company logo."); }
-    finally { setBusy(false); }
-  }}><h2 className="text-xl font-bold">Company logo</h2><p className="text-sm text-muted-foreground">Upload a PNG or JPG. White backgrounds and empty edges are removed automatically so the logo sits cleanly on every surface.</p>
-    <div aria-label="Logo transparency preview" className="checkerboard flex h-36 items-center justify-center rounded-lg border border-border p-4">{(cleaned || logo) ? <img src={cleaned || logo} alt="Company logo preview" className="max-h-full max-w-full object-contain"/> : <span className="font-bold text-primary">Biorica Sciences Pvt. Ltd.</span>}</div>
-    <Label htmlFor="company-logo">Logo file (PNG or JPG)</Label><Input key={source ? "chosen" : "empty"} id="company-logo" type="file" accept="image/png,image/jpeg" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; if (f.size > 5_000_000) { toast.error("Choose a logo under 5 MB."); return; } const r = new FileReader(); r.onload = () => setSource(String(r.result)); r.readAsDataURL(f); }}/>
-    {source && <div className="space-y-2"><div className="flex items-center justify-between"><Label htmlFor="logo-threshold">White removal threshold</Label><span className="text-xs tabular-nums text-muted-foreground">{threshold}</span></div>
-      <Slider id="logo-threshold" min={200} max={255} step={1} value={[threshold]} onValueChange={([t]) => setThreshold(t ?? DEFAULT_WHITE_THRESHOLD)}/>
-      <p className="text-xs text-muted-foreground">Lower removes more off-white; raise it if parts of the logo disappear.</p></div>}
-    <Button type="submit" variant="teal" disabled={busy || !cleaned}>{busy ? <Loader2 className="animate-spin"/> : <FileUp/>}Save transparent logo</Button>
-    <LogoFinishDefault/><LogoSizeDefault/></form></div>;
+      const r = await supabase.storage.from("pack-images").upload(path, await dataUrlToBlob(cleaned), { contentType: "image/png" }); if (r.error) throw r.error;
+      if (await save(withSlot({ url: mediaUrl("pack-images", path), label: label.trim() || SLOT_DEFAULTS[index]! }))) { setSource(""); toast.success(`Logo ${n} saved`); }
+      else await supabase.storage.from("pack-images").remove([path]);
+    } catch { toast.error("Couldn't upload the logo."); } finally { setBusy(false); }
+  }
+  return <div className="space-y-3 rounded-lg border border-border p-4">
+    <div className="flex items-center justify-between gap-2"><b className="text-sm">Logo {n}</b>
+      <label className="flex items-center gap-1.5 text-xs"><input type="radio" name="header-logo" checked={lib.header === n} disabled={!slot.url} onChange={async () => { if (await save(lib.slots, n)) toast.success(`Logo ${n} is now the website header logo`); }}/>Website header logo</label></div>
+    <div className="flex gap-2"><Input aria-label={`Logo ${n} name`} maxLength={60} value={label} onChange={(e) => setLabel(e.target.value)}/>
+      <Button type="button" variant="outline" disabled={busy || label.trim() === slot.label || !label.trim()} onClick={async () => { if (await save(withSlot({ label: label.trim() }))) toast.success("Name saved"); }}>Rename</Button></div>
+    <div aria-label={`Logo ${n} preview`} className="checkerboard flex h-28 items-center justify-center rounded-lg border border-border p-3">{(cleaned || slot.url) ? <img src={cleaned || slot.url} alt={`${label} preview`} className="max-h-full max-w-full object-contain"/> : <span className="text-xs text-muted-foreground">Empty slot</span>}</div>
+    <Input key={source ? "chosen" : "empty"} aria-label={`Logo ${n} file`} type="file" accept="image/png,image/jpeg" disabled={busy} onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; if (f.size > 5_000_000) { toast.error("Choose a logo under 5 MB."); return; } const r = new FileReader(); r.onload = () => setSource(String(r.result)); r.readAsDataURL(f); }}/>
+    {source && <div className="space-y-2"><div className="flex items-center justify-between"><Label>White removal threshold</Label><span className="text-xs tabular-nums text-muted-foreground">{threshold}</span></div>
+      <Slider min={200} max={255} step={1} value={[threshold]} onValueChange={([t]) => setThreshold(t ?? DEFAULT_WHITE_THRESHOLD)}/></div>}
+    <div className="flex flex-wrap gap-2"><Button type="button" variant="teal" disabled={busy || !cleaned} onClick={upload}>{busy ? <Loader2 className="animate-spin"/> : <FileUp/>}{slot.url ? "Replace logo" : "Save logo"}</Button>
+      {slot.url && <Button type="button" variant="outline" disabled={busy} onClick={async () => { if (await save(withSlot({ url: "" }))) toast.success(`Logo ${n} removed`); }}><Trash2/>Delete</Button>}</div>
+  </div>;
+}
+
+export function CompanyBranding() {
+  const { data: lib } = useQuery(logoLibraryQuery); const qc = useQueryClient();
+  async function save(slots: LogoSlot[], header?: number) {
+    const h = header ?? lib?.header ?? 1; const headerUrl = slots[h - 1]?.url || slots.find((x) => x.url)?.url || "";
+    const { error } = await supabase.from("company_branding").upsert({ id: "official", logos: slots, header_logo_slot: h, logo_url: headerUrl, updated_at: new Date().toISOString() });
+    if (error) { toast.error("Couldn't save the logo library."); return false; }
+    await Promise.all([qc.invalidateQueries({ queryKey: ["logo-library"] }), qc.invalidateQueries({ queryKey: ["company-logo"] })]); return true;
+  }
+  return <div className="space-y-10"><CompanyDetails/><BrandTheme/><section className="max-w-3xl space-y-4">
+    <h2 className="text-xl font-bold">Brand logo library</h2><p className="text-sm text-muted-foreground">Up to 4 logos. White backgrounds and empty edges are removed automatically. Studios use Logo 1 by default, and Logo 2 on dark designs when it's uploaded.</p>
+    {lib ? <div className="grid gap-4 sm:grid-cols-2">{lib.slots.map((_, i) => <LogoSlotEditor key={i} index={i} lib={lib} save={save}/>)}</div> : <Loader2 className="animate-spin"/>}
+    <div className="grid max-w-xl gap-4"><LogoFinishDefault/><LogoSizeDefault/></div></section></div>;
 }

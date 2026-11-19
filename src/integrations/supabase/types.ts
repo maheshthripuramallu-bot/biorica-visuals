@@ -25,11 +25,13 @@ export type Database = {
           custom_header_color: string
           custom_primary_color: string
           footer_text: string
+          header_logo_slot: number
           heading_font: string
           id: string
           logo_finish: string
           logo_size: string
           logo_url: string
+          logos: Json
           updated_at: string
           website: string
         }
@@ -43,11 +45,13 @@ export type Database = {
           custom_header_color?: string
           custom_primary_color?: string
           footer_text?: string
+          header_logo_slot?: number
           heading_font?: string
           id?: string
           logo_finish?: string
           logo_size?: string
           logo_url?: string
+          logos?: Json
           updated_at?: string
           website?: string
         }
@@ -61,11 +65,13 @@ export type Database = {
           custom_header_color?: string
           custom_primary_color?: string
           footer_text?: string
+          header_logo_slot?: number
           heading_font?: string
           id?: string
           logo_finish?: string
           logo_size?: string
           logo_url?: string
+          logos?: Json
           updated_at?: string
           website?: string
         }

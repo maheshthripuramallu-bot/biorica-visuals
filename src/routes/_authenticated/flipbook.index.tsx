@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { BookOpen } from "lucide-react";
-import { catalogQuery } from "@/lib/catalog";
+import { catalogQuery, inDivision } from "@/lib/catalog";
 import { PackImage } from "@/components/pack-image";
 
 export const Route = createFileRoute("/_authenticated/flipbook/")({
@@ -28,7 +28,7 @@ function FlipbookIndex() {
       <p className="mt-2 text-muted-foreground">Open a division, or jump straight to a brand.</p>
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {data.divisions.map((d) => {
-          const products = data.products.filter((p) => p.division_id === d.id);
+          const products = data.products.filter((p) => inDivision(p, d.id));
           return (
             <section key={d.id} className="flex flex-col gap-3 p-5 surface-card">
               <h2 className="text-lg font-bold text-primary">{d.name}</h2>

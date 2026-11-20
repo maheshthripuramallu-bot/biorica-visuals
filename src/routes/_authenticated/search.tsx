@@ -4,7 +4,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { BookOpen, FlaskConical, Images, LayoutGrid, Search, Sparkles, Stethoscope, Tag, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { PackImage } from "@/components/pack-image";
-import { catalogQuery, divisionFor, searchCatalog, type Catalog, type Product } from "@/lib/catalog";
+import { catalogQuery, inDivision, divisionFor, searchCatalog, type Catalog, type Product } from "@/lib/catalog";
 
 export const Route = createFileRoute("/_authenticated/search")({
   validateSearch: (search: Record<string, unknown>): { q?: string | undefined } => ({
@@ -122,7 +122,7 @@ function SearchPage() {
                   <span className="block font-semibold text-primary">{d.name}</span>
                   <span className="text-sm text-muted-foreground">{d.therapy_tag}</span>
                 </span>
-                <Badge variant="navy">{data.products.filter((p) => p.division_id === d.id).length} brands</Badge>
+                <Badge variant="navy">{data.products.filter((p) => inDivision(p, d.id)).length} brands</Badge>
               </Link>
             ))}
           </Group>

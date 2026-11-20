@@ -99,6 +99,13 @@
       "when": 1795134131719,
       "tag": "0013_team_login_ids",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795194837641,
+      "tag": "0014_taxonomy_and_card_templates",
+      "breakpoints": true
     }
   ]
 }

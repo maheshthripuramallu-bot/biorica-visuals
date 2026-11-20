@@ -12,6 +12,13 @@ export const productInput = z.object({
   is_top_product: z.boolean(),
   is_upcoming: z.boolean(),
   brand_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Brand colour must be a hex code like #0D9488").nullable().default(null),
+  division_ids: z.array(z.string().uuid()).default([]),
+  specialties: z.array(z.string().max(100)).default([]),
+  focus_tags: z.array(z.string().max(50)).default([]),
+}).transform((p) => {
+  // Primary division always leads the list, so legacy single-division screens keep working.
+  const ids = [...new Set([p.division_id, ...p.division_ids])];
+  return { ...p, division_id: ids[0]!, division_ids: ids };
 });
 
 export function parseProductCsv(text: string, divisions: Division[]) {

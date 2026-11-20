@@ -8,7 +8,7 @@ export const getCatalog = createServerFn({ method: "GET" }).handler(async (): Pr
     sb.from("divisions").select("id, name, slug, therapy_tag, description, display_order").order("display_order"),
     sb
       .from("products")
-      .select("id, division_id, brand_name, composition, dosage_form, indications, pack_image_url, is_top_product, is_upcoming, brand_color")
+      .select("id, division_id, brand_name, composition, dosage_form, indications, pack_image_url, is_top_product, is_upcoming, brand_color, division_ids, specialties, focus_tags")
       .order("brand_name"),
     sb
       .from("visual_aids")
@@ -19,5 +19,10 @@ export const getCatalog = createServerFn({ method: "GET" }).handler(async (): Pr
   if (divisions.error) throw new Error(divisions.error.message);
   if (products.error) throw new Error(products.error.message);
   if (visualAids.error) throw new Error(visualAids.error.message);
-  return { divisions: divisions.data, products: products.data, visualAids: visualAids.data };
+  const list = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
+  return {
+    divisions: divisions.data,
+    products: products.data.map((p) => ({ ...p, division_ids: list(p.division_ids), specialties: list(p.specialties), focus_tags: list(p.focus_tags) })),
+    visualAids: visualAids.data,
+  };
 });

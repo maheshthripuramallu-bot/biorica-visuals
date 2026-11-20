@@ -21,6 +21,10 @@ export type Product = {
   is_top_product: boolean;
   is_upcoming: boolean;
   brand_color: string | null;
+  /** Multi-select taxonomy: a product can belong to several divisions, specialties and detailing focuses. */
+  division_ids: string[];
+  specialties: string[];
+  focus_tags: string[];
 };
 
 export type VisualAid = {
@@ -150,10 +154,24 @@ export function resolveDivision(catalog: Catalog, slug: string) {
   }
   const division = catalog.divisions.find((d) => d.slug === slug);
   if (!division) return null;
-  const products = catalog.products.filter((p) => p.division_id === division.id);
+  const products = catalog.products.filter((p) => inDivision(p, division.id));
   return { ...division, products, virtual: false as const };
 }
 
+/** True when the product belongs to the division as primary or as an extra tagged division. */
+export function inDivision(p: Pick<Product, "division_id" | "division_ids">, divisionId: string) {
+  return p.division_id === divisionId || (p.division_ids ?? []).includes(divisionId);
+}
+/** Multi-select filter: every non-empty group must match at least one selected value (OR within a group, AND across groups). */
+export function matchesTaxonomy(p: Product, f: { divisions: string[]; specialties: string[]; focus: string[] }) {
+  return (!f.divisions.length || f.divisions.some((d) => inDivision(p, d)))
+    && (!f.specialties.length || f.specialties.some((s) => (p.specialties ?? []).includes(s)))
+    && (!f.focus.length || f.focus.some((x) => (p.focus_tags ?? []).includes(x)));
+}
+/** Toggle a value inside a multi-select chip group. */
+export function toggleTag(list: string[], value: string) {
+  return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+}
 export function divisionFor(catalog: Catalog, product: Product) {
   return catalog.divisions.find((d) => d.id === product.division_id);
 }

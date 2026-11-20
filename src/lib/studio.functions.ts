@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { CREATIVE_TYPES, CREATIVE_TYPE_VALUES, DETAILING_FOCUS_VALUES } from "./catalog";
+import { BRIEF_LIST_MAX } from "./brief-editor";
 import { editImage, generateImage, generateResponse, GatewayError } from "@lovable.dev/ai-gateway";
 
 const dataUrl = z.string().regex(/^data:image\/(png|jpeg|jpg|webp);base64,/).max(4_000_000);
@@ -66,6 +67,7 @@ export const analyzePack = createServerFn({ method: "POST" })
         specialty: z.string().max(100).default("General Physician"),
         knownComposition: z.string().max(1000).default(""),
         products: z.array(z.object({ brand_name: z.string().max(200), composition: z.string().max(1000) })).max(10).default([]),
+        mode: z.enum(["product", "case"]).default("product"),
       })
       .parse(input),
   )
@@ -82,6 +84,9 @@ export const analyzePack = createServerFn({ method: "POST" })
       data.products.length > 1
         ? `This is a MULTI-PRODUCT PORTFOLIO of ${data.products.length} Biorica brands: ${data.products.map((p) => `${p.brand_name} (${p.composition})`).join("; ")}. Set brand_name to a portfolio title such as 'Complete Neuro Care Range', composition to the brands list, and make the copy describe the range.`
         : "",
+      data.mode === "case"
+        ? "This brief feeds a Clinical Case Poster: you may reference well-established clinical evidence conservatively in how_it_works and prescribed_for."
+        : "This brief feeds a Product Visual Aid: keep strictly to branding, composition, indications, dosage and USPs. Do NOT include clinical trial results, study names, statistics, percentages or p-values anywhere.",
       "Return JSON only.",
     ].filter(Boolean).join("\n");
     try {
@@ -107,11 +112,11 @@ export const analyzePack = createServerFn({ method: "POST" })
       const parsed = JSON.parse(out) as Omit<PackAnalysis, "patient_persona">;
       return {
         ...parsed,
-        patient_symptoms: parsed.patient_symptoms.slice(0, 5),
+        patient_symptoms: parsed.patient_symptoms.slice(0, BRIEF_LIST_MAX),
         patient_name: parsed.patient_name.replace(/\s*\((illustrative|fictional|hypothetical)[^)]*\)/gi, "").trim(),
         patient_persona: `${parsed.patient_name}, ${parsed.patient_age}, ${parsed.patient_occupation}`,
-        indications: parsed.indications.slice(0, 4),
-        usps: parsed.usps.slice(0, 4),
+        indications: parsed.indications.slice(0, BRIEF_LIST_MAX),
+        usps: parsed.usps.slice(0, BRIEF_LIST_MAX),
       };
     } catch (err) {
       friendlyError(err);
@@ -181,13 +186,13 @@ export const generateCreative = createServerFn({ method: "POST" })
           dosage_form: z.string().max(200).default(""),
           headline: z.string().max(300),
           tagline: z.string().max(400),
-          indications: z.array(z.string().max(200)).max(4),
-          usps: z.array(z.string().max(200)).max(4),
+          indications: z.array(z.string().max(200)).max(BRIEF_LIST_MAX),
+          usps: z.array(z.string().max(200)).max(BRIEF_LIST_MAX),
           patient_persona: z.string().max(400).default(""),
           patient_name: z.string().max(120).default(""),
           patient_age: z.string().max(40).default(""),
           patient_occupation: z.string().max(120).default(""),
-          patient_symptoms: z.array(z.string().max(120)).max(5).default([]),
+          patient_symptoms: z.array(z.string().max(120)).max(BRIEF_LIST_MAX).default([]),
           how_it_works: z.string().max(600).default(""),
           dosage_guide: z.string().max(400).default(""),
           prescribed_for: z.string().max(400).default(""),
@@ -197,6 +202,8 @@ export const generateCreative = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const a = data.analysis;
+    // Clinical data (patient cases, mechanism evidence, trial results) is routed only to the Clinical Case Poster.
+    const clinical = data.creativeType === "case_poster";
     const portfolio = data.productNames.length > 1;
     const kind = portfolio && data.creativeType !== "portfolio" ? `${KINDS[data.creativeType]}, adapted as a multi-product specialty basket featuring all ${data.productNames.length} packs together` : KINDS[data.creativeType];
     const prompt = [
@@ -213,7 +220,7 @@ export const generateCreative = createServerFn({ method: "POST" })
       `Key indications as short bullets: ${a.indications.map((i) => `"${i}"`).join(", ")}.`,
       `USP highlights: ${a.usps.map((u) => `"${u}"`).join(", ")}.`,
       portfolio ? `Brands to show (each pack clearly, names spelled exactly): ${data.productNames.map((n) => `"${n}"`).join(", ")}.` : "",
-      a.patient_name && ["case_poster", "awareness"].includes(data.creativeType)
+      a.patient_name && clinical
         ? `Patient profile card text: "${a.patient_name}" · "${a.patient_age}" · "${a.patient_occupation}"; symptoms/vitals: ${a.patient_symptoms.map((x) => `"${x}"`).join(", ")}.`
         : "",
       data.creativeType === "case_poster" && !portfolio
@@ -225,9 +232,12 @@ export const generateCreative = createServerFn({ method: "POST" })
             "4) Bottom: clean 3-column clinical infographic with medical line icons titled 'HOW IT WORKS', 'DOSAGE GUIDE', 'PRESCRIBED FOR' using the texts below.",
           ].join("\n")
         : "",
-      a.how_it_works ? `How It Works: "${a.how_it_works}"` : "",
+      clinical && a.how_it_works ? `How It Works: "${a.how_it_works}"` : "",
       a.dosage_guide ? `Dosage Guide: "${a.dosage_guide}"` : "",
-      a.prescribed_for ? `Prescribed For: "${a.prescribed_for}"` : "",
+      clinical && a.prescribed_for ? `Prescribed For: "${a.prescribed_for}"` : "",
+      clinical
+        ? "Clinical evidence may appear only as the supplied texts; never invent trial numbers."
+        : "STRICTLY EXCLUDE clinical data: no clinical trial results, study names, charts, percentages, statistics or p-values. Show only branding, composition, indications, dosage and USPs.",
       ["slide", "poster", "whatsapp"].includes(data.creativeType) && !portfolio ? LAYOUTS[data.variation % LAYOUTS.length] : `Variation ${data.variation + 1}: vary composition and camera angle.`,
       data.creativeType === "case_poster" ? ART[data.artDirection] : FOCUS[data.focus]?.(data.specialty) || ART[data.artDirection],
       data.brandColor

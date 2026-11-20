@@ -35,11 +35,11 @@ describe("Verify Data edited state", () => {
       expect(finalBrief(edited)[key]).toEqual([`Edited ${key}`]);
     }
   });
-  it("keeps existing generation limits of four indications, four features and five symptoms", () => {
-    for (const [key, count] of [["indications", 4], ["usps", 4], ["patient_symptoms", 5]] as const) {
+  it("lets the user add more than one item, with no small cap on any list", () => {
+    for (const key of ["indications", "usps", "patient_symptoms"] as const) {
       let edited = draft;
-      for (let i = 0; i < 10; i++) edited = addBriefItem(edited, key);
-      expect(edited[key]).toHaveLength(count);
+      for (let i = 0; i < 12; i++) edited = addBriefItem(edited, key);
+      expect(edited[key]).toHaveLength(13);
     }
   });
 });

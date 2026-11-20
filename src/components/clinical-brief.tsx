@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { addBriefItem, BRIEF_LIST_LIMITS, deleteBriefItem, editBriefItem, updateBrief, type BriefListKey } from "@/lib/brief-editor";
+import { addBriefItem, BRIEF_LIST_MAX, deleteBriefItem, editBriefItem, updateBrief, type BriefListKey } from "@/lib/brief-editor";
 import type { PackAnalysis } from "@/lib/studio.functions";
 
 type Props = { brief: PackAnalysis; onChange: (b: PackAnalysis) => void; disabled?: boolean; packImage?: string };
@@ -38,7 +38,7 @@ function BriefEditor({ brief, onChange, disabled = false, packImage, clinical = 
         <Button type="button" variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-destructive" title={`Delete ${title.toLowerCase()} item ${index + 1}`} aria-label={`Delete ${title.toLowerCase()} item ${index + 1}`} onClick={() => onChange(deleteBriefItem(brief, key, index))}><Trash2 /></Button>
       </div>)}
     </div>
-    <Button type="button" variant="ghost" size="sm" className="text-teal-strong" disabled={brief[key].length >= BRIEF_LIST_LIMITS[key]} onClick={() => onChange(addBriefItem(brief, key))}><Plus />Add Item<span className="sr-only"> to {title.toLowerCase()}</span></Button>
+    <Button type="button" variant="ghost" size="sm" className="text-teal-strong" disabled={brief[key].length >= BRIEF_LIST_MAX} onClick={() => onChange(addBriefItem(brief, key))}><Plus />Add Item<span className="sr-only"> to {title.toLowerCase()}</span></Button>
   </EditorSection>;
 
   return <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">

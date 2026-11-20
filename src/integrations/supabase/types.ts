@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      card_templates: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          image_path: string
+          image_url: string
+          kind: string
+          name: string
+          text_align: string
+          text_color: string
+          text_x: number
+          text_y: number
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id?: string
+          image_path: string
+          image_url: string
+          kind: string
+          name: string
+          text_align?: string
+          text_color?: string
+          text_x?: number
+          text_y?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          image_path?: string
+          image_url?: string
+          kind?: string
+          name?: string
+          text_align?: string
+          text_color?: string
+          text_x?: number
+          text_y?: number
+        }
+        Relationships: []
+      }
       company_branding: {
         Row: {
           active_theme_id: string
@@ -198,12 +240,15 @@ export type Database = {
           composition: string
           created_at: string
           division_id: string
+          division_ids: Json
           dosage_form: string
+          focus_tags: Json
           id: string
           indications: string[]
           is_top_product: boolean
           is_upcoming: boolean
           pack_image_url: string | null
+          specialties: Json
         }
         Insert: {
           brand_color?: string | null
@@ -211,12 +256,15 @@ export type Database = {
           composition?: string
           created_at?: string
           division_id: string
+          division_ids?: Json
           dosage_form?: string
+          focus_tags?: Json
           id?: string
           indications?: string[]
           is_top_product?: boolean
           is_upcoming?: boolean
           pack_image_url?: string | null
+          specialties?: Json
         }
         Update: {
           brand_color?: string | null
@@ -224,12 +272,15 @@ export type Database = {
           composition?: string
           created_at?: string
           division_id?: string
+          division_ids?: Json
           dosage_form?: string
+          focus_tags?: Json
           id?: string
           indications?: string[]
           is_top_product?: boolean
           is_upcoming?: boolean
           pack_image_url?: string | null
+          specialties?: Json
         }
         Relationships: [
           {

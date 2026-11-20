@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowRight, Rocket, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { catalogQuery } from "@/lib/catalog";
+import { catalogQuery, inDivision } from "@/lib/catalog";
 
 export const Route = createFileRoute("/_authenticated/divisions/")({
   head: () => ({
@@ -53,7 +53,7 @@ function DivisionsPage() {
 
       <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {data.divisions.map((d, i) => {
-          const count = data.products.filter((p) => p.division_id === d.id).length;
+          const count = data.products.filter((p) => inDivision(p, d.id)).length;
           return (
             <article
               key={d.id}

@@ -38,3 +38,10 @@ Verified editor upload, brand-color extraction, quick row replacement, reload an
 - [ ] Retry generation with the same product photo to verify the upload-size fix — waiting for the user to attach the original photo (not present in accessible uploads).
 
 Verified signed-in real AI brief generation, edits to all text fields, list add/edit/delete, desktop and mobile previews, edited final request and completed PNG download. All 68 regression tests pass.
+
+# Logic & design engine overhaul
+- [x] Clinical data (patient cases, mechanism, trial results, p-values) routed only to Clinical Case Poster; Product Visual Aids exclude it.
+- [x] Verify Data lists unrestricted (+ Add works repeatedly).
+- [x] Products support multiple divisions, specialties and detailing focus (chip selectors in /manage and catalog filter).
+- [x] Card design engine: 11 fonts, size/colour/alignment controls, 20 built-in templates (10 visiting, 10 greeting).
+- [x] /manage Card Templates tab: upload JPG/PNG/SVG backgrounds with name, category and text position; shown in both studios.

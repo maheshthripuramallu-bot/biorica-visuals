@@ -1,7 +1,8 @@
 import type { PackAnalysis } from "./studio.functions";
 
-export const BRIEF_LIST_LIMITS = { indications: 4, usps: 4, patient_symptoms: 5 } as const;
-export type BriefListKey = keyof typeof BRIEF_LIST_LIMITS;
+/** Lists in Verify Data are unrestricted; the server accepts up to this many rows as an abuse guard. */
+export const BRIEF_LIST_MAX = 50;
+export type BriefListKey = "indications" | "usps" | "patient_symptoms";
 
 export function updateBrief<K extends keyof PackAnalysis>(brief: PackAnalysis, key: K, value: PackAnalysis[K]): PackAnalysis {
   return { ...brief, [key]: value };
@@ -12,7 +13,7 @@ export function editBriefItem(brief: PackAnalysis, key: BriefListKey, index: num
 }
 
 export function addBriefItem(brief: PackAnalysis, key: BriefListKey): PackAnalysis {
-  if (brief[key].length >= BRIEF_LIST_LIMITS[key]) return brief;
+  if (brief[key].length >= BRIEF_LIST_MAX) return brief;
   return updateBrief(brief, key, [...brief[key], ""]);
 }
 

@@ -21,7 +21,7 @@ describe("Admin import", () => {
 });
 describe("Search", () => {
   it("finds brands by chemical composition", () => {
-    const catalog: Catalog = { divisions: [division], visualAids: [], products: [{ id: "p1", division_id: division.id, brand_name: "MIBICAL-D3", composition: "Cholecalciferol 60,000 IU", dosage_form: "Nano Shots", indications: [], pack_image_url: null, is_top_product: false, is_upcoming: false, brand_color: null }] };
+    const catalog: Catalog = { divisions: [division], visualAids: [], products: [{ id: "p1", division_id: division.id, brand_name: "MIBICAL-D3", composition: "Cholecalciferol 60,000 IU", dosage_form: "Nano Shots", indications: [], pack_image_url: null, is_top_product: false, is_upcoming: false, brand_color: null, division_ids: [division.id], specialties: [], focus_tags: [] }] };
     expect(searchCatalog(catalog, "Cholecalciferol").molecules[0]?.brand_name).toBe("MIBICAL-D3");
   });
 });

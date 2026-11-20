@@ -4,17 +4,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { MAX_SELECTED_PRODUCTS, toggleSelection, type Catalog } from "@/lib/catalog";
+import { DETAILING_FOCUS, MAX_SELECTED_PRODUCTS, SPECIALTIES, matchesTaxonomy, toggleSelection, toggleTag, type Catalog } from "@/lib/catalog";
+import { ChipGroup } from "./chip-group";
 import { cn } from "@/lib/utils";
 
 export function ProductPicker({ catalog, selected, onChange }: { catalog: Catalog; selected: string[]; onChange: (ids: string[]) => void }) {
   const [q, setQ] = useState("");
-  const [div, setDiv] = useState<string | null>(null);
+  const [divs, setDivs] = useState<string[]>([]);
+  const [specs, setSpecs] = useState<string[]>([]);
+  const [focus, setFocus] = useState<string[]>([]);
   const full = selected.length >= MAX_SELECTED_PRODUCTS;
   const list = useMemo(() => {
     const t = q.trim().toLowerCase();
-    return catalog.products.filter((p) => (!div || p.division_id === div) && (!t || `${p.brand_name} ${p.composition}`.toLowerCase().includes(t)));
-  }, [catalog.products, q, div]);
+    return catalog.products.filter((p) => matchesTaxonomy(p, { divisions: divs, specialties: specs, focus }) && (!t || `${p.brand_name} ${p.composition}`.toLowerCase().includes(t)));
+  }, [catalog.products, q, divs, specs, focus]);
   return (
     <div className="mt-6 rounded-xl border border-border bg-background p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -28,12 +31,11 @@ export function ProductPicker({ catalog, selected, onChange }: { catalog: Catalo
         <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search brand or molecule" className="h-10 bg-card pl-8" aria-label="Search products" />
       </div>
-      <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
-        {[{ id: null, name: "All" }, ...catalog.divisions].map((d) => (
-          <button key={d.id ?? "all"} type="button" onClick={() => setDiv(d.id)} className={cn("shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium", div === d.id ? "border-teal bg-teal-soft text-teal-strong" : "border-border bg-card text-muted-foreground")}>
-            {d.name}
-          </button>
-        ))}
+      <div className="mt-2 space-y-1.5">
+        <ChipGroup label="Filter by division" options={catalog.divisions.map((d) => ({ value: d.id, label: d.name }))} value={divs} onToggle={(v) => setDivs((l) => toggleTag(l, v))} />
+        <ChipGroup label="Filter by specialty" options={SPECIALTIES.map((s) => ({ value: s, label: s }))} value={specs} onToggle={(v) => setSpecs((l) => toggleTag(l, v))} />
+        <ChipGroup label="Filter by detailing focus" options={DETAILING_FOCUS.filter((f) => f.value !== "auto").map((f) => ({ value: f.value, label: f.label }))} value={focus} onToggle={(v) => setFocus((l) => toggleTag(l, v))} />
+        {(divs.length + specs.length + focus.length > 0) && <button type="button" className="text-xs font-medium text-teal-strong underline" onClick={() => { setDivs([]); setSpecs([]); setFocus([]); }}>Clear filters</button>}
       </div>
       <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto">
         {list.map((p) => {

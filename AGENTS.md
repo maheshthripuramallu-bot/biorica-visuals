@@ -43,3 +43,6 @@ use the editor.
 - Every portal page lives under the client-only `_authenticated` gate (only /auth, /reset-password and api routes are public) and self sign-up is disabled, because the portal is team-only with admin-created logins.
 - Login User IDs map to the real email when given, else a private <id>@team.biorica.local address; sign-in resolves User ID/email server-side and returns only session tokens, so handles never expose emails.
 - Verification editors and live previews share the Studio draft; final generation snapshots that edited draft and omits only empty list rows, so no raw AI response can overwrite user changes.
+- Product taxonomy lives in products.division_ids/specialties/focus_tags (jsonb arrays) with division_id kept as the first entry; always filter via inDivision/matchesTaxonomy so legacy single-division screens stay consistent.
+- Card design templates are canvas-painted presets in src/lib/card-design.ts plus admin rows in card_templates (images in the card-templates bucket via the media proxy); text is always typeset locally over the template, never by AI.
+- Clinical evidence (patient case, mechanism, prescribed-for, trial data) is only sent to the AI for case_poster; product visual aid prompts explicitly exclude it.

@@ -245,6 +245,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
         data: {
           images: [...images.map((i) => i.dataUrl), ...(images.length ? [] : packs)].slice(0, 5),
           brandHint: mode === "portfolio" ? "" : brandHint.trim(),
+          mode: caseMode ? "case" : "product",
           division: division?.name ?? "",
           specialty,
           knownComposition: mode === "portfolio" ? "" : selectedProduct?.composition ?? "",

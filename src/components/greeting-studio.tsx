@@ -23,6 +23,8 @@ import { renderGreeting } from "@/lib/greeting-canvas";
 import { getCompanyLogo, writeGreeting, generateGreetingBackground } from "@/lib/greetings.functions";
 import { blobToDataUrl, compressImage, dataUrlToBlob, downloadDataUrl, slugify } from "@/lib/canvas";
 import type { Json } from "@/integrations/supabase/types";
+import { TemplateGallery, TextStyleControls } from "@/components/design-controls";
+import { defaultStyle, type DesignTemplate, type TextStyle } from "@/lib/card-design";
 
 export const companyLogoQuery = { queryKey: ["company-logo"], queryFn: () => getCompanyLogo(), staleTime: 60_000 };
 type Card = { id: string; greeting: Greeting; image: string; saved: boolean };
@@ -44,6 +46,8 @@ export function GreetingStudio() {
   const [writing, setWriting] = useState(false); const [saving, setSaving] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState(""); const [progress, setProgress] = useState("");
   const output = useRef<HTMLDivElement>(null);
+  const [design, setDesign] = useState<DesignTemplate | null>(null); const [textStyle, setTextStyle] = useState<TextStyle>(defaultStyle(undefined));
+  const designArg = design ? { template: design, style: textStyle } : undefined;
   const autoWrite = useServerFn(writeGreeting); const createBackground = useServerFn(generateGreetingBackground);
   const historyKey = ["greeting-history", auth?.user?.id];
   const history = useQuery({ queryKey: historyKey, enabled: Boolean(auth?.user), queryFn: async () => {
@@ -53,9 +57,9 @@ export function GreetingStudio() {
   }, staleTime: 5 * 60_000 });
   useEffect(() => {
     let active = true;
-    const timer = setTimeout(() => { renderGreeting(g, logo, "", 0, company, "", logoSize).then((img) => { if (active) { setPreview(img); setPreviewError(""); } }).catch(() => { if (active) setPreviewError("Couldn't load the portrait or logo. Please choose another image."); }); }, 200);
+    const timer = setTimeout(() => { renderGreeting(g, logo, "", 0, company, "", logoSize, designArg).then((img) => { if (active) { setPreview(img); setPreviewError(""); } }).catch(() => { if (active) setPreviewError("Couldn't load the portrait or logo. Please choose another image."); }); }, 200);
     return () => { active = false; clearTimeout(timer); };
-  }, [g, logo, company, logoSize]);
+  }, [g, logo, company, logoSize, design, textStyle]);
   function update<K extends keyof Greeting>(key: K, value: Greeting[K]) { setG((prev) => ({ ...prev, [key]: value })); }
   function chooseOccasion(value: string) { setOccasion(value); const resolved = value === "Custom Occasion" ? "" : value; setG((prev) => ({ ...prev, occasion: resolved, headline: "", message: resolved ? defaultMessage(resolved) : "" })); }
   const signIn = <Button asChild variant="outline"><Link to="/auth" search={{ redirect: "/?tab=greetings" }}>Sign in for AI & saved history</Link></Button>;
@@ -65,10 +69,12 @@ export function GreetingStudio() {
     if (!auth?.user) { toast.info("Please sign in to generate AI variations."); return; }
     setBusy(true); setCards([]); const current = parsed.data;
     try {
-      for (let i = 0; i < variationInput.parse(count); i++) {
-        setProgress(`Creating variation ${i + 1} of ${count}…`);
-        const background = await createBackground({ data: { occasion: current.occasion, style: current.style, format: current.format, variation: i } });
-        const image = await renderGreeting(current, logo, background, i, company, "", logoSize);
+      // A chosen template is composed locally (no AI background), so one exact card is produced.
+      const total = designArg ? 1 : variationInput.parse(count);
+      for (let i = 0; i < total; i++) {
+        setProgress(`Creating variation ${i + 1} of ${total}…`);
+        const background = designArg ? "" : await createBackground({ data: { occasion: current.occasion, style: current.style, format: current.format, variation: i } });
+        const image = await renderGreeting(current, logo, background, i, company, "", logoSize, designArg);
         setCards((prev) => [...prev, { id: crypto.randomUUID(), greeting: current, image, saved: false }]);
       }
       output.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -138,6 +144,10 @@ export function GreetingStudio() {
           <div className="max-h-48 space-y-2 overflow-auto">{catalog?.products.filter((p) => p.brand_name.toLowerCase().includes(productSearch.toLowerCase())).map((p) => { const selected = g.products.some((s) => s.id === p.id); return <Label key={p.id} className="flex items-center gap-3 py-1"><Checkbox aria-label={`Feature ${p.brand_name}`} checked={selected} disabled={!selected && g.products.length === 3} onCheckedChange={(checked) => update("products", checked === true ? [...g.products, { id: p.id, brand_name: p.brand_name, pack_image_url: p.pack_image_url, brand_color: p.brand_color }].slice(0, 3) : g.products.filter((s) => s.id !== p.id))}/><span className="min-w-0 break-words">{p.brand_name}</span></Label>; })}</div>
           {g.products.length > 0 && <Label className="flex items-center justify-between gap-3 rounded-md border border-border p-3"><span>Match palette to selected product pack{!g.products.some((p) => p.brand_color) && <span className="block text-xs font-normal text-muted-foreground">No pack colour saved for these brands yet</span>}</span><Switch checked={g.matchPalette} onCheckedChange={(v) => update("matchPalette", v)}/></Label>}
           {g.products.length > 0 && <div className="grid grid-cols-2 gap-2"><Button type="button" variant={g.productDisplay === "text" ? "teal" : "outline"} onClick={() => update("productDisplay", "text")}>Brand text strip</Button><Button type="button" variant={g.productDisplay === "packs" ? "teal" : "outline"} onClick={() => update("productDisplay", "packs")}>Mini pack thumbnails</Button></div>}
+        </fieldset>
+        <fieldset className="space-y-3 border-t border-border pt-5"><legend className="text-lg font-bold">Design engine</legend>
+          <TemplateGallery kind="greeting" value={design?.id ?? null} noneLabel="AI background (classic)" onChange={(t) => { setDesign(t); if (t) setTextStyle(defaultStyle(t)); }} />
+          {design && <TextStyleControls idPrefix="greet-text" value={textStyle} onChange={setTextStyle} />}
         </fieldset>
         <fieldset className="space-y-3 border-t border-border pt-5"><legend className="text-lg font-bold">Design & format</legend>
           <Label htmlFor="greeting-style">Design style</Label><select id="greeting-style" className={selectClass} value={g.style} onChange={(e) => { const style = GREETING_STYLES.find((s) => s === e.target.value); if (style) update("style", style); }}>{GREETING_STYLES.map((s) => <option key={s}>{s}</option>)}</select>

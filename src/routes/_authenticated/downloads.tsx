@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { DOWNLOAD_CATEGORIES, FORMAT_GROUPS, canPreview, downloadHref, downloadsQuery, filterDownloads, formatBytes, type DownloadFile, type DownloadSort, type FormatGroup } from "@/lib/downloads";
 
-export const Route = createFileRoute("/downloads")({
+export const Route = createFileRoute("/_authenticated/downloads")({
   head: () => ({
     meta: [
       { title: "Downloads — Biorica Visuals" },

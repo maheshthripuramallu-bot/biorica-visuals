@@ -56,7 +56,7 @@ import { ProductPicker } from "@/components/product-picker";
 import { VisitingCardStudio } from "@/components/visiting-card-studio";
 import { ClinicalBriefEditor, ProductBriefEditor } from "@/components/clinical-brief";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/")({
   validateSearch: (search: Record<string, unknown>): { product?: string | undefined; tab?: "greetings" | "case" | "cards" | undefined } => ({
     product: typeof search["product"] === "string" ? search["product"] : undefined,
     tab: search["tab"] === "greetings" || search["tab"] === "case" || search["tab"] === "cards" ? search["tab"] : undefined,

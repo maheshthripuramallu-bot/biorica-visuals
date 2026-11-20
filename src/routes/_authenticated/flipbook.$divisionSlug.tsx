@@ -5,7 +5,7 @@ import { FlipbookViewer } from "@/components/flipbook-viewer";
 import { catalogQuery, resolveDivision } from "@/lib/catalog";
 import { buildSlides } from "@/lib/flipbook";
 
-export const Route = createFileRoute("/flipbook/$divisionSlug")({
+export const Route = createFileRoute("/_authenticated/flipbook/$divisionSlug")({
   validateSearch: (search: Record<string, unknown>): { product?: string | undefined } => ({
     product: typeof search["product"] === "string" ? search["product"] : undefined,
   }),

@@ -4,7 +4,7 @@ import { ArrowRight, Rocket, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { catalogQuery } from "@/lib/catalog";
 
-export const Route = createFileRoute("/divisions/")({
+export const Route = createFileRoute("/_authenticated/divisions/")({
   head: () => ({
     meta: [
       { title: "Therapeutic Divisions — Biorica Visuals" },

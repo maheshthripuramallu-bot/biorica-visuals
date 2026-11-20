@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { PackImage } from "@/components/pack-image";
 import { catalogQuery, divisionFor, searchCatalog, type Catalog, type Product } from "@/lib/catalog";
 
-export const Route = createFileRoute("/search")({
+export const Route = createFileRoute("/_authenticated/search")({
   validateSearch: (search: Record<string, unknown>): { q?: string | undefined } => ({
     q: typeof search["q"] === "string" && search["q"] ? search["q"] : undefined,
   }),

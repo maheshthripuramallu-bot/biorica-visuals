@@ -4,7 +4,7 @@ import { BookOpen } from "lucide-react";
 import { catalogQuery } from "@/lib/catalog";
 import { PackImage } from "@/components/pack-image";
 
-export const Route = createFileRoute("/flipbook/")({
+export const Route = createFileRoute("/_authenticated/flipbook/")({
   head: () => ({
     meta: [
       { title: "Flipbooks — Biorica Visuals" },

@@ -7,7 +7,7 @@ import { ProductCard } from "@/components/product-card";
 import { catalogQuery, DOSAGE_FORMS, resolveDivision } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/divisions/$slug")({
+export const Route = createFileRoute("/_authenticated/divisions/$slug")({
   loader: async ({ context, params }) => {
     const catalog = await context.queryClient.ensureQueryData(catalogQuery);
     const division = resolveDivision(catalog, params.slug);

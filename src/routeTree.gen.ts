@@ -9,25 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as DownloadsRouteImport } from './routes/downloads'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as SearchRouteImport } from './routes/search'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedDownloadsRouteImport } from './routes/_authenticated/downloads'
 import { Route as AuthenticatedManageRouteImport } from './routes/_authenticated/manage'
-import { Route as DivisionsIndexRouteImport } from './routes/divisions.index'
-import { Route as DivisionsSlugRouteImport } from './routes/divisions.$slug'
-import { Route as FlipbookIndexRouteImport } from './routes/flipbook.index'
-import { Route as FlipbookDivisionSlugRouteImport } from './routes/flipbook.$divisionSlug'
+import { Route as AuthenticatedSearchRouteImport } from './routes/_authenticated/search'
+import { Route as AuthenticatedDivisionsIndexRouteImport } from './routes/_authenticated/divisions.index'
+import { Route as AuthenticatedDivisionsSlugRouteImport } from './routes/_authenticated/divisions.$slug'
+import { Route as AuthenticatedFlipbookIndexRouteImport } from './routes/_authenticated/flipbook.index'
+import { Route as AuthenticatedFlipbookDivisionSlugRouteImport } from './routes/_authenticated/flipbook.$divisionSlug'
 import { Route as ApiPublicMediaSplatRouteImport } from './routes/api/public/media.$'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
@@ -37,24 +32,24 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DownloadsRoute = DownloadsRouteImport.update({
-  id: '/downloads',
-  path: '/downloads',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SearchRoute = SearchRouteImport.update({
-  id: '/search',
-  path: '/search',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDownloadsRoute = AuthenticatedDownloadsRouteImport.update({
+  id: '/downloads',
+  path: '/downloads',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedManageRoute = AuthenticatedManageRouteImport.update({
@@ -62,26 +57,35 @@ const AuthenticatedManageRoute = AuthenticatedManageRouteImport.update({
   path: '/manage',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const DivisionsIndexRoute = DivisionsIndexRouteImport.update({
-  id: '/divisions/',
-  path: '/divisions/',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedSearchRoute = AuthenticatedSearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const DivisionsSlugRoute = DivisionsSlugRouteImport.update({
-  id: '/divisions/$slug',
-  path: '/divisions/$slug',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FlipbookIndexRoute = FlipbookIndexRouteImport.update({
-  id: '/flipbook/',
-  path: '/flipbook/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FlipbookDivisionSlugRoute = FlipbookDivisionSlugRouteImport.update({
-  id: '/flipbook/$divisionSlug',
-  path: '/flipbook/$divisionSlug',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const AuthenticatedDivisionsIndexRoute =
+  AuthenticatedDivisionsIndexRouteImport.update({
+    id: '/divisions/',
+    path: '/divisions/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDivisionsSlugRoute =
+  AuthenticatedDivisionsSlugRouteImport.update({
+    id: '/divisions/$slug',
+    path: '/divisions/$slug',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFlipbookIndexRoute =
+  AuthenticatedFlipbookIndexRouteImport.update({
+    id: '/flipbook/',
+    path: '/flipbook/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFlipbookDivisionSlugRoute =
+  AuthenticatedFlipbookDivisionSlugRouteImport.update({
+    id: '/flipbook/$divisionSlug',
+    path: '/flipbook/$divisionSlug',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const ApiPublicMediaSplatRoute = ApiPublicMediaSplatRouteImport.update({
   id: '/api/public/media/$',
   path: '/api/public/media/$',
@@ -89,47 +93,47 @@ const ApiPublicMediaSplatRoute = ApiPublicMediaSplatRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
-  '/downloads': typeof DownloadsRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/search': typeof SearchRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/downloads': typeof AuthenticatedDownloadsRoute
   '/manage': typeof AuthenticatedManageRoute
-  '/divisions/$slug': typeof DivisionsSlugRoute
-  '/flipbook/$divisionSlug': typeof FlipbookDivisionSlugRoute
-  '/divisions/': typeof DivisionsIndexRoute
-  '/flipbook/': typeof FlipbookIndexRoute
+  '/search': typeof AuthenticatedSearchRoute
+  '/divisions/$slug': typeof AuthenticatedDivisionsSlugRoute
+  '/flipbook/$divisionSlug': typeof AuthenticatedFlipbookDivisionSlugRoute
+  '/divisions/': typeof AuthenticatedDivisionsIndexRoute
+  '/flipbook/': typeof AuthenticatedFlipbookIndexRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/downloads': typeof DownloadsRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/search': typeof SearchRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/downloads': typeof AuthenticatedDownloadsRoute
   '/manage': typeof AuthenticatedManageRoute
-  '/divisions/$slug': typeof DivisionsSlugRoute
-  '/flipbook/$divisionSlug': typeof FlipbookDivisionSlugRoute
-  '/divisions': typeof DivisionsIndexRoute
-  '/flipbook': typeof FlipbookIndexRoute
+  '/search': typeof AuthenticatedSearchRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/divisions/$slug': typeof AuthenticatedDivisionsSlugRoute
+  '/flipbook/$divisionSlug': typeof AuthenticatedFlipbookDivisionSlugRoute
+  '/divisions': typeof AuthenticatedDivisionsIndexRoute
+  '/flipbook': typeof AuthenticatedFlipbookIndexRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
-  '/downloads': typeof DownloadsRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/search': typeof SearchRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/downloads': typeof AuthenticatedDownloadsRoute
   '/_authenticated/manage': typeof AuthenticatedManageRoute
-  '/divisions/$slug': typeof DivisionsSlugRoute
-  '/flipbook/$divisionSlug': typeof FlipbookDivisionSlugRoute
-  '/divisions/': typeof DivisionsIndexRoute
-  '/flipbook/': typeof FlipbookIndexRoute
+  '/_authenticated/search': typeof AuthenticatedSearchRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/divisions/$slug': typeof AuthenticatedDivisionsSlugRoute
+  '/_authenticated/flipbook/$divisionSlug': typeof AuthenticatedFlipbookDivisionSlugRoute
+  '/_authenticated/divisions/': typeof AuthenticatedDivisionsIndexRoute
+  '/_authenticated/flipbook/': typeof AuthenticatedFlipbookIndexRoute
   '/api/public/media/$': typeof ApiPublicMediaSplatRoute
 }
 export interface FileRouteTypes {
@@ -137,11 +141,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
-    | '/downloads'
     | '/reset-password'
-    | '/search'
     | '/admin'
+    | '/downloads'
     | '/manage'
+    | '/search'
     | '/divisions/$slug'
     | '/flipbook/$divisionSlug'
     | '/divisions/'
@@ -149,13 +153,13 @@ export interface FileRouteTypes {
     | '/api/public/media/$'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/auth'
-    | '/downloads'
     | '/reset-password'
-    | '/search'
     | '/admin'
+    | '/downloads'
     | '/manage'
+    | '/search'
+    | '/'
     | '/divisions/$slug'
     | '/flipbook/$divisionSlug'
     | '/divisions'
@@ -163,44 +167,30 @@ export interface FileRouteTypes {
     | '/api/public/media/$'
   id:
     | '__root__'
-    | '/'
     | '/_authenticated'
     | '/auth'
-    | '/downloads'
     | '/reset-password'
-    | '/search'
     | '/_authenticated/admin'
+    | '/_authenticated/downloads'
     | '/_authenticated/manage'
-    | '/divisions/$slug'
-    | '/flipbook/$divisionSlug'
-    | '/divisions/'
-    | '/flipbook/'
+    | '/_authenticated/search'
+    | '/_authenticated/'
+    | '/_authenticated/divisions/$slug'
+    | '/_authenticated/flipbook/$divisionSlug'
+    | '/_authenticated/divisions/'
+    | '/_authenticated/flipbook/'
     | '/api/public/media/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
-  DownloadsRoute: typeof DownloadsRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  SearchRoute: typeof SearchRoute
-  DivisionsSlugRoute: typeof DivisionsSlugRoute
-  FlipbookDivisionSlugRoute: typeof FlipbookDivisionSlugRoute
-  DivisionsIndexRoute: typeof DivisionsIndexRoute
-  FlipbookIndexRoute: typeof FlipbookIndexRoute
   ApiPublicMediaSplatRoute: typeof ApiPublicMediaSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
@@ -215,13 +205,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/downloads': {
-      id: '/downloads'
-      path: '/downloads'
-      fullPath: '/downloads'
-      preLoaderRoute: typeof DownloadsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -229,18 +212,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/search': {
-      id: '/search'
-      path: '/search'
-      fullPath: '/search'
-      preLoaderRoute: typeof SearchRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/': {
+      id: '/_authenticated/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/downloads': {
+      id: '/_authenticated/downloads'
+      path: '/downloads'
+      fullPath: '/downloads'
+      preLoaderRoute: typeof AuthenticatedDownloadsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/manage': {
@@ -250,33 +240,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedManageRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/divisions/': {
-      id: '/divisions/'
+    '/_authenticated/search': {
+      id: '/_authenticated/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof AuthenticatedSearchRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/divisions/': {
+      id: '/_authenticated/divisions/'
       path: '/divisions'
       fullPath: '/divisions/'
-      preLoaderRoute: typeof DivisionsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedDivisionsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/divisions/$slug': {
-      id: '/divisions/$slug'
+    '/_authenticated/divisions/$slug': {
+      id: '/_authenticated/divisions/$slug'
       path: '/divisions/$slug'
       fullPath: '/divisions/$slug'
-      preLoaderRoute: typeof DivisionsSlugRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedDivisionsSlugRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/flipbook/': {
-      id: '/flipbook/'
+    '/_authenticated/flipbook/': {
+      id: '/_authenticated/flipbook/'
       path: '/flipbook'
       fullPath: '/flipbook/'
-      preLoaderRoute: typeof FlipbookIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedFlipbookIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/flipbook/$divisionSlug': {
-      id: '/flipbook/$divisionSlug'
+    '/_authenticated/flipbook/$divisionSlug': {
+      id: '/_authenticated/flipbook/$divisionSlug'
       path: '/flipbook/$divisionSlug'
       fullPath: '/flipbook/$divisionSlug'
-      preLoaderRoute: typeof FlipbookDivisionSlugRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedFlipbookDivisionSlugRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/api/public/media/$': {
       id: '/api/public/media/$'
@@ -290,28 +287,36 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedDownloadsRoute: typeof AuthenticatedDownloadsRoute
   AuthenticatedManageRoute: typeof AuthenticatedManageRoute
+  AuthenticatedSearchRoute: typeof AuthenticatedSearchRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedDivisionsSlugRoute: typeof AuthenticatedDivisionsSlugRoute
+  AuthenticatedFlipbookDivisionSlugRoute: typeof AuthenticatedFlipbookDivisionSlugRoute
+  AuthenticatedDivisionsIndexRoute: typeof AuthenticatedDivisionsIndexRoute
+  AuthenticatedFlipbookIndexRoute: typeof AuthenticatedFlipbookIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedDownloadsRoute: AuthenticatedDownloadsRoute,
   AuthenticatedManageRoute: AuthenticatedManageRoute,
+  AuthenticatedSearchRoute: AuthenticatedSearchRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedDivisionsSlugRoute: AuthenticatedDivisionsSlugRoute,
+  AuthenticatedFlipbookDivisionSlugRoute:
+    AuthenticatedFlipbookDivisionSlugRoute,
+  AuthenticatedDivisionsIndexRoute: AuthenticatedDivisionsIndexRoute,
+  AuthenticatedFlipbookIndexRoute: AuthenticatedFlipbookIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
-  DownloadsRoute: DownloadsRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  SearchRoute: SearchRoute,
-  DivisionsSlugRoute: DivisionsSlugRoute,
-  FlipbookDivisionSlugRoute: FlipbookDivisionSlugRoute,
-  DivisionsIndexRoute: DivisionsIndexRoute,
-  FlipbookIndexRoute: FlipbookIndexRoute,
   ApiPublicMediaSplatRoute: ApiPublicMediaSplatRoute,
 }
 export const routeTree = rootRouteImport

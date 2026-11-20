@@ -248,6 +248,7 @@ export type Database = {
           full_name: string
           id: string
           is_active: boolean
+          login_id: string | null
           role: string
           territory: string
           updated_at: string
@@ -255,10 +256,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          email: string
+          email?: string
           full_name: string
           id?: string
           is_active?: boolean
+          login_id?: string | null
           role?: string
           territory?: string
           updated_at?: string
@@ -270,6 +272,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_active?: boolean
+          login_id?: string | null
           role?: string
           territory?: string
           updated_at?: string

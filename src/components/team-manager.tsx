@@ -14,8 +14,8 @@ import { TEAM_ROLES, parseQuickAdd, resolvePassword, teamCapacity, type TeamRole
 import { createTeamUsers, deleteTeamUser, updateTeamUser } from "@/lib/team.functions";
 
 const selectClass = "h-10 w-full rounded-md border border-input bg-card px-3 text-sm";
-type Member = { id: string; full_name: string; email: string; role: string; territory: string; is_active: boolean };
-const blank = { full_name: "", email: "", role: "mr" as TeamRole, territory: "", password: "" };
+type Member = { id: string; login_id: string | null; full_name: string; email: string; role: string; territory: string; is_active: boolean };
+const blank = { login_id: "", full_name: "", email: "", role: "mr" as TeamRole, territory: "", password: "" };
 const roleLabel = (r: string) => TEAM_ROLES.find((x) => x.value === r)?.label ?? r;
 
 export function TeamManager() {
@@ -44,8 +44,8 @@ export function TeamManager() {
   });
   const saveUser = () => form && run(async () => {
     if (form.id) {
-      await update({ data: { id: form.id, full_name: form.full_name, email: form.email, role: form.role, territory: form.territory, ...(form.password ? { password: form.password } : {}) } });
-      if (form.password) setIssued([{ email: form.email, password: form.password }]);
+      await update({ data: { id: form.id, login_id: form.login_id, full_name: form.full_name, email: form.email, role: form.role, territory: form.territory, ...(form.password ? { password: form.password } : {}) } });
+      if (form.password) setIssued([{ email: form.login_id || form.email, password: form.password }]);
       toast.success("User updated");
     } else {
       const password = resolvePassword(form.password, pw);
@@ -62,7 +62,7 @@ export function TeamManager() {
     res.filter((r) => !r.ok).forEach((r) => toast.error(`${r.email}: ${r.error}`));
     if (ok.length) toast.success(`${ok.length} users created`); if (ok.length === res.length) setQuick(null);
   });
-  const shown = members.filter((m) => `${m.full_name} ${m.email} ${m.territory}`.toLowerCase().includes(q.toLowerCase()) && (!roleF || m.role === roleF) && (!statusF || String(m.is_active) === statusF));
+  const shown = members.filter((m) => `${m.login_id ?? ""} ${m.full_name} ${m.email} ${m.territory}`.toLowerCase().includes(q.toLowerCase()) && (!roleF || m.role === roleF) && (!statusF || String(m.is_active) === statusF));
 
   return <div className="space-y-6">
     <section className="rounded-lg border border-border bg-card p-5">
@@ -82,25 +82,27 @@ export function TeamManager() {
     {issued.length > 0 && <section className="rounded-lg border border-teal bg-card p-5" role="status">
       <div className="flex items-center justify-between"><h3 className="font-bold">Sign-in details to share</h3><Button variant="ghost" size="sm" onClick={() => setIssued([])}>Dismiss</Button></div>
       <p className="text-xs text-muted-foreground">Shown once — passwords aren't stored readable. Use "Reset password" to issue a new one later.</p>
-      <div className="mt-2 divide-y divide-border">{issued.map((i) => <div key={i.email} className="flex flex-wrap items-center gap-3 py-2 text-sm"><span className="flex-1 font-medium">{i.email}</span><code className="rounded bg-muted px-2 py-1">{i.password}</code><Button variant="ghost" size="icon" aria-label={`Copy login for ${i.email}`} onClick={() => copy(`Email: ${i.email}\nPassword: ${i.password}\nSign in: ${window.location.origin}/auth`)}><Copy/></Button></div>)}</div>
+      <div className="mt-2 divide-y divide-border">{issued.map((i) => <div key={i.email} className="flex flex-wrap items-center gap-3 py-2 text-sm"><span className="flex-1 font-medium">{i.email}</span><code className="rounded bg-muted px-2 py-1">{i.password}</code><Button variant="ghost" size="icon" aria-label={`Copy login for ${i.email}`} onClick={() => copy(`User ID: ${i.email}\nPassword: ${i.password}\nSign in: ${window.location.origin}/auth`)}><Copy/></Button></div>)}</div>
     </section>}
 
     <section>
-      <div className="flex flex-wrap gap-3"><Input aria-label="Search users" placeholder="Search name, email, territory" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm"/>
+      <div className="flex flex-wrap gap-3"><Input aria-label="Search users" placeholder="Search User ID, name, email, territory" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm"/>
         <select aria-label="Filter by role" className="h-10 rounded-md border border-input bg-card px-3 text-sm" value={roleF} onChange={(e) => setRoleF(e.target.value)}><option value="">All roles</option>{TEAM_ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}</select>
         <select aria-label="Filter by status" className="h-10 rounded-md border border-input bg-card px-3 text-sm" value={statusF} onChange={(e) => setStatusF(e.target.value)}><option value="">All statuses</option><option value="true">Active</option><option value="false">Inactive</option></select></div>
       <div className="mt-4 divide-y divide-border rounded-lg border border-border bg-card">{shown.map((m) => <div key={m.id} className="flex flex-wrap items-center gap-3 p-4">
-        <div className="min-w-0 flex-1"><p className="font-bold">{m.full_name}</p><p className="break-all text-sm text-muted-foreground">{m.email}</p><p className="mt-1 text-xs text-teal-strong">{roleLabel(m.role)}{m.territory && ` · ${m.territory}`}</p></div>
+        <div className="min-w-0 flex-1"><p className="font-bold">{m.full_name}</p><p className="break-all text-sm text-muted-foreground">{m.login_id && <span className="mr-2 rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">{m.login_id}</span>}{m.email}</p><p className="mt-1 text-xs text-teal-strong">{roleLabel(m.role)}{m.territory && ` · ${m.territory}`}</p></div>
         <label className="flex items-center gap-2 text-sm"><Switch checked={m.is_active} disabled={busy} aria-label={`${m.full_name} active`} onCheckedChange={(v) => run(async () => { await update({ data: { id: m.id, is_active: v } }); toast.success(v ? "Activated" : "Deactivated — can't sign in"); })}/>{m.is_active ? "Active" : "Inactive"}</label>
-        <Button variant="ghost" size="sm" disabled={busy || !pw} title="Reset to default password" onClick={() => run(async () => { await update({ data: { id: m.id, password: pw } }); setIssued([{ email: m.email, password: pw }]); toast.success("Password reset to default"); })}><KeyRound/>Reset password</Button>
-        <Button variant="ghost" size="sm" onClick={() => { setForm({ id: m.id, full_name: m.full_name, email: m.email, role: m.role as TeamRole, territory: m.territory, password: "" }); setShowPw(false); }}>Edit</Button>
+        <Button variant="ghost" size="sm" disabled={busy || !pw} title="Reset to default password" onClick={() => run(async () => { await update({ data: { id: m.id, password: pw } }); setIssued([{ email: m.login_id || m.email, password: pw }]); toast.success("Password reset to default"); })}><KeyRound/>Reset password</Button>
+        <Button variant="ghost" size="sm" onClick={() => { setForm({ id: m.id, login_id: m.login_id ?? "", full_name: m.full_name, email: m.email, role: m.role as TeamRole, territory: m.territory, password: "" }); setShowPw(false); }}>Edit</Button>
         <Button variant="ghost" size="icon" aria-label={`Delete ${m.full_name}`} onClick={() => setRemove(m)}><Trash2/></Button>
       </div>)}{!shown.length && <p className="p-8 text-center text-muted-foreground">{members.length ? "No matching users." : "No team users yet — add your first MR or manager."}</p>}</div>
     </section>
 
     <Dialog open={Boolean(form)} onOpenChange={(v) => { if (!v && !busy) setForm(null); }}><DialogContent><DialogHeader><DialogTitle>{form?.id ? "Edit user" : "Add team user"}</DialogTitle></DialogHeader>{form && <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); saveUser(); }}>
       <Label htmlFor="tu-name">Full name</Label><Input id="tu-name" required value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })}/>
-      <Label htmlFor="tu-email">Email / User ID</Label><Input id="tu-email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}/>
+      <Label htmlFor="tu-login">User ID</Label><Input id="tu-login" placeholder="e.g. BR-MR-01" autoComplete="off" value={form.login_id} onChange={(e) => setForm({ ...form, login_id: e.target.value })}/>
+      <Label htmlFor="tu-email">Email {form.login_id.trim() ? "(optional)" : ""}</Label><Input id="tu-email" type="email" required={!form.login_id.trim()} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })}/>
+      <p className="text-xs text-muted-foreground">They can sign in with the User ID or the email. Without an email, password resets are done here by you.</p>
       <Label htmlFor="tu-role">Role</Label><select id="tu-role" className={selectClass} value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as TeamRole })}>{TEAM_ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}</select>
       <Label htmlFor="tu-territory">Division / Territory (optional)</Label><Input id="tu-territory" value={form.territory} onChange={(e) => setForm({ ...form, territory: e.target.value })}/>
       <Label htmlFor="tu-pw">{form.id ? "New password (leave blank to keep)" : "Password"}</Label>

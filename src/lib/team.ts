@@ -29,3 +29,19 @@ export function parseQuickAdd(text: string) {
     return { full_name, email: email.toLowerCase(), role: r, territory };
   });
 }
+
+export const LOGIN_DOMAIN = "team.biorica.local";
+/** User IDs: letters, numbers, dot, dash, underscore (3–40). Case-insensitive. */
+export function normalizeLoginId(raw: string) {
+  const id = raw.trim();
+  if (!id) return "";
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{2,39}$/.test(id)) throw new Error("User ID must be 3–40 characters: letters, numbers, dot, dash or underscore (e.g. BR-MR-01).");
+  return id;
+}
+/** Sign-in email: the real email when given, otherwise a private address derived from the User ID. */
+export function authEmailFor(loginId: string, email: string) {
+  const e = email.trim().toLowerCase();
+  if (e) { if (!/^\S+@\S+\.\S+$/.test(e)) throw new Error("Enter a valid email address."); return e; }
+  if (!loginId) throw new Error("Enter a User ID or an email address.");
+  return `${loginId.toLowerCase()}@${LOGIN_DOMAIN}`;
+}

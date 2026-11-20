@@ -263,16 +263,32 @@ export function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
-/** Compresses a pack photo in the browser (keeps PNG transparency). */
-export async function compressImage(file: File): Promise<string> {
+/** Largest data URL the AI Studio server accepts (zod limit is 4M chars). */
+export const MAX_IMAGE_DATA_URL = 3_500_000;
+
+/**
+ * Compresses a pack photo in the browser so it always fits the AI Studio
+ * upload limit. Outputs JPEG (pack photos don't need transparency) and
+ * shrinks dimensions until the data URL is under MAX_IMAGE_DATA_URL.
+ */
+export async function compressImage(file: File | Blob): Promise<string> {
   const { default: imageCompression } = await import("browser-image-compression");
-  const compressed = await imageCompression(file, {
-    maxSizeMB: 0.6,
-    maxWidthOrHeight: 1400,
-    useWebWorker: true,
-    fileType: file.type === "image/png" ? "image/png" : "image/jpeg",
-  });
-  return blobToDataUrl(compressed);
+  const source = file instanceof File ? file : new File([file], "pack.jpg", { type: file.type || "image/jpeg" });
+  let maxDim = 1400;
+  let dataUrl = "";
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const compressed = await imageCompression(source, {
+      maxSizeMB: 0.6,
+      maxWidthOrHeight: maxDim,
+      useWebWorker: true,
+      fileType: "image/jpeg",
+      initialQuality: 0.85,
+    });
+    dataUrl = await blobToDataUrl(compressed);
+    if (dataUrl.length <= MAX_IMAGE_DATA_URL) return dataUrl;
+    maxDim = Math.round(maxDim * 0.6);
+  }
+  return dataUrl;
 }
 
 export function slugify(s: string) {

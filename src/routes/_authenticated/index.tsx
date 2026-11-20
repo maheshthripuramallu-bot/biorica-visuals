@@ -75,6 +75,14 @@ export const Route = createFileRoute("/_authenticated/")({
   component: StudioTabs,
 });
 
+/** Turns raw server/validation errors into messages MRs can act on. */
+function friendlyAiError(e: unknown, fallback: string): string {
+  const msg = e instanceof Error ? e.message : "";
+  if (/4000000|too_big|at most 4000000/i.test(msg))
+    return "One of the images is too large even after compression. Try a smaller photo or a screenshot of the pack.";
+  return msg || fallback;
+}
+
 function StudioTabs() {
   const { tab, product } = Route.useSearch(); const navigate = useNavigate();
   return <Tabs value={tab ?? "products"} onValueChange={(value) => navigate({ to: "/", search: { product, tab: value === "greetings" || value === "case" || value === "cards" ? value : undefined }, replace: true })}>
@@ -159,7 +167,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
       if (!p.pack_image_url) continue;
       try {
         const r = await fetch(p.pack_image_url);
-        if (r.ok) out.push(await blobToDataUrl(await r.blob()));
+        if (r.ok) out.push(await compressImage(await r.blob()));
       } catch {
         /* skip unreadable pack */
       }
@@ -183,7 +191,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
     if (product.pack_image_url) {
       fetch(product.pack_image_url)
         .then((r) => (r.ok ? r.blob() : Promise.reject()))
-        .then(blobToDataUrl)
+        .then(compressImage)
         .then((dataUrl) => setImages([{ id: "pack", dataUrl, name: `${product.brand_name} pack` }]))
         .catch(() => {});
     } else setImages([]);
@@ -244,7 +252,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
       setAnalysis(result);
       setPhase("brief");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Analysis failed");
+      toast.error(friendlyAiError(e, "Analysis failed"));
       setPhase("idle");
     }
   }
@@ -311,7 +319,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
           setCreatives((prev) => prev.map((x) => (x.id === c.id ? { ...x, status: "done", image: withFooter, prompt: res.prompt } : x)));
         } catch (e) {
           setCreatives((prev) =>
-            prev.map((x) => (x.id === c.id ? { ...x, status: "error", error: e instanceof Error ? e.message : "Generation failed" } : x)),
+            prev.map((x) => (x.id === c.id ? { ...x, status: "error", error: friendlyAiError(e, "Generation failed") } : x)),
           );
         }
       }),

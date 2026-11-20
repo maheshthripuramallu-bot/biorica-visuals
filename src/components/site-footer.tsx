@@ -20,7 +20,7 @@ export function SiteFooter() {
       {data.company_phone && <p className="mt-1">Phone: <a href={`tel:${data.company_phone.replace(/[^+\d]/g, "")}`} className="hover:underline">{data.company_phone}</a></p>}
       {data.footer_text && <p className="mt-3 text-xs">{data.footer_text}</p>}
       <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border pt-4">
-        <span className="inline-flex items-center gap-1.5 text-xs"><Users className="size-4 text-teal"/>Active Users: <b className="text-foreground">{team?.active ?? 0} / {team?.target ?? 10}</b> Projected</span>
+        <span className="inline-flex items-center gap-1.5 text-xs"><Users className="size-4 text-teal"/>Active Team Users: <b className="text-foreground">{team?.active ?? 0}</b> (Unlimited)</span>
         {auth?.isAdmin
           ? <a href="/manage#team" className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"><UserPlus className="size-4"/>Add User / Team Access</a>
           : <Link to="/auth" className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"><UserPlus className="size-4"/>{auth?.user ? "Team access (admins only)" : "Team Login"}</Link>}

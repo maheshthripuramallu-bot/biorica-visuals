@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { TEAM_ROLES, parseQuickAdd, resolvePassword, teamCapacity, type TeamRole } from "@/lib/team";
+import { TEAM_ROLES, parseQuickAdd, resolvePassword, teamStats, pageOf, type TeamRole } from "@/lib/team";
 import { createTeamUsers, deleteTeamUser, updateTeamUser } from "@/lib/team.functions";
 
 const selectClass = "h-10 w-full rounded-md border border-input bg-card px-3 text-sm";
@@ -25,13 +25,13 @@ export function TeamManager() {
     const [m, s] = await Promise.all([supabase.from("team_members").select("*").order("created_at"), supabase.from("team_settings").select("*").eq("id", "official").maybeSingle()]);
     if (m.error) throw m.error; return { members: m.data as Member[], settings: s.data };
   } });
-  const members = data?.members ?? []; const cap = teamCapacity(members.filter((m) => m.is_active).length, data?.settings?.target_users ?? 10);
+  const members = data?.members ?? []; const stats = teamStats(members);
   const [defaultPw, setDefaultPw] = useState<string | null>(null); const pw = defaultPw ?? data?.settings?.default_password ?? "";
   const [showDefault, setShowDefault] = useState(false);
   const [form, setForm] = useState<(typeof blank & { id?: string }) | null>(null); const [showPw, setShowPw] = useState(false);
   const [quick, setQuick] = useState<string | null>(null);
   const [issued, setIssued] = useState<{ email: string; password: string }[]>([]);
-  const [q, setQ] = useState(""); const [roleF, setRoleF] = useState(""); const [statusF, setStatusF] = useState("");
+  const [q, setQ] = useState(""); const [roleF, setRoleF] = useState(""); const [statusF, setStatusF] = useState(""); const [terrF, setTerrF] = useState(""); const [page, setPage] = useState(1);
   const [busy, setBusy] = useState(false); const [remove, setRemove] = useState<Member | null>(null);
   const refresh = () => { qc.invalidateQueries({ queryKey: ["team"] }); qc.invalidateQueries({ queryKey: ["team-status"] }); };
   async function run(fn: () => Promise<void>) { setBusy(true); try { await fn(); refresh(); } catch (e) { toast.error(e instanceof Error ? e.message : "Something went wrong"); } finally { setBusy(false); } }
@@ -62,15 +62,15 @@ export function TeamManager() {
     res.filter((r) => !r.ok).forEach((r) => toast.error(`${r.email}: ${r.error}`));
     if (ok.length) toast.success(`${ok.length} users created`); if (ok.length === res.length) setQuick(null);
   });
-  const shown = members.filter((m) => `${m.login_id ?? ""} ${m.full_name} ${m.email} ${m.territory}`.toLowerCase().includes(q.toLowerCase()) && (!roleF || m.role === roleF) && (!statusF || String(m.is_active) === statusF));
+  const shown = members.filter((m) => `${m.login_id ?? ""} ${m.full_name} ${m.email} ${m.territory}`.toLowerCase().includes(q.toLowerCase()) && (!roleF || m.role === roleF) && (!statusF || String(m.is_active) === statusF) && (!terrF || m.territory === terrF));
+  const territories = [...new Set(members.map((m) => m.territory).filter(Boolean))].sort(); const view = pageOf(shown, page);
 
   return <div className="space-y-6">
     <section className="rounded-lg border border-border bg-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div><h2 className="flex items-center gap-2 text-xl font-bold"><Users className="size-5 text-teal"/>Team Users & Access</h2><p className="mt-1 text-sm text-muted-foreground">Active users: <b className="text-foreground">{cap.active} / {cap.target}</b> projected · {cap.remaining} seats left in the rollout</p></div>
+        <div><h2 className="flex items-center gap-2 text-xl font-bold"><Users className="size-5 text-teal"/>Team Users & Access</h2><p className="mt-1 text-sm text-muted-foreground">Unlimited users (no limit) · <b className="text-foreground">{stats.total}</b> total · <b className="text-foreground">{stats.active}</b> active</p><div className="mt-2 flex flex-wrap gap-2 text-xs">{[["Admin", stats.admin], ["Manager", stats.manager], ["MR", stats.mr]].map(([l, n]) => <span key={l} className="rounded-full bg-muted px-2.5 py-1 font-semibold">{l}: {n}</span>)}</div></div>
         <div className="flex flex-wrap gap-2"><Button onClick={() => { setForm({ ...blank }); setShowPw(false); }}><UserPlus/>Add user</Button><Button variant="outline" onClick={() => setQuick("")}><Plus/>Bulk / Quick add</Button></div>
       </div>
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuenow={cap.percent} aria-valuemin={0} aria-valuemax={100}><div className="h-full bg-teal transition-all" style={{ width: `${cap.percent}%` }}/></div>
     </section>
 
     <section className="rounded-lg border border-border bg-card p-5">
@@ -86,16 +86,17 @@ export function TeamManager() {
     </section>}
 
     <section>
-      <div className="flex flex-wrap gap-3"><Input aria-label="Search users" placeholder="Search User ID, name, email, territory" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm"/>
-        <select aria-label="Filter by role" className="h-10 rounded-md border border-input bg-card px-3 text-sm" value={roleF} onChange={(e) => setRoleF(e.target.value)}><option value="">All roles</option>{TEAM_ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}</select>
-        <select aria-label="Filter by status" className="h-10 rounded-md border border-input bg-card px-3 text-sm" value={statusF} onChange={(e) => setStatusF(e.target.value)}><option value="">All statuses</option><option value="true">Active</option><option value="false">Inactive</option></select></div>
-      <div className="mt-4 divide-y divide-border rounded-lg border border-border bg-card">{shown.map((m) => <div key={m.id} className="flex flex-wrap items-center gap-3 p-4">
+      <div className="flex flex-wrap gap-3"><Input aria-label="Search users" placeholder="Search User ID, name, email, territory" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} className="max-w-sm"/>
+        <select aria-label="Filter by role" className="h-10 rounded-md border border-input bg-card px-3 text-sm" value={roleF} onChange={(e) => { setRoleF(e.target.value); setPage(1); }}><option value="">All roles</option>{TEAM_ROLES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}</select>
+        <select aria-label="Filter by status" className="h-10 rounded-md border border-input bg-card px-3 text-sm" value={statusF} onChange={(e) => { setStatusF(e.target.value); setPage(1); }}><option value="">All statuses</option><option value="true">Active</option><option value="false">Inactive</option></select><select aria-label="Filter by division or territory" className="h-10 rounded-md border border-input bg-card px-3 text-sm" value={terrF} onChange={(e) => { setTerrF(e.target.value); setPage(1); }}><option value="">All divisions / territories</option>{territories.map((t) => <option key={t}>{t}</option>)}</select></div>
+      <div className="mt-4 divide-y divide-border rounded-lg border border-border bg-card">{view.rows.map((m) => <div key={m.id} className="flex flex-wrap items-center gap-3 p-4">
         <div className="min-w-0 flex-1"><p className="font-bold">{m.full_name}</p><p className="break-all text-sm text-muted-foreground">{m.login_id && <span className="mr-2 rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">{m.login_id}</span>}{m.email}</p><p className="mt-1 text-xs text-teal-strong">{roleLabel(m.role)}{m.territory && ` · ${m.territory}`}</p></div>
         <label className="flex items-center gap-2 text-sm"><Switch checked={m.is_active} disabled={busy} aria-label={`${m.full_name} active`} onCheckedChange={(v) => run(async () => { await update({ data: { id: m.id, is_active: v } }); toast.success(v ? "Activated" : "Deactivated — can't sign in"); })}/>{m.is_active ? "Active" : "Inactive"}</label>
         <Button variant="ghost" size="sm" disabled={busy || !pw} title="Reset to default password" onClick={() => run(async () => { await update({ data: { id: m.id, password: pw } }); setIssued([{ email: m.login_id || m.email, password: pw }]); toast.success("Password reset to default"); })}><KeyRound/>Reset password</Button>
         <Button variant="ghost" size="sm" onClick={() => { setForm({ id: m.id, login_id: m.login_id ?? "", full_name: m.full_name, email: m.email, role: m.role as TeamRole, territory: m.territory, password: "" }); setShowPw(false); }}>Edit</Button>
         <Button variant="ghost" size="icon" aria-label={`Delete ${m.full_name}`} onClick={() => setRemove(m)}><Trash2/></Button>
       </div>)}{!shown.length && <p className="p-8 text-center text-muted-foreground">{members.length ? "No matching users." : "No team users yet — add your first MR or manager."}</p>}</div>
+      {shown.length > 0 && <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground"><span>Showing {(view.page - 1) * 25 + 1}–{(view.page - 1) * 25 + view.rows.length} of {shown.length}</span>{view.pages > 1 && <div className="flex items-center gap-2"><Button variant="outline" size="sm" disabled={view.page <= 1} onClick={() => setPage(view.page - 1)}>Previous</Button><span>Page {view.page} of {view.pages}</span><Button variant="outline" size="sm" disabled={view.page >= view.pages} onClick={() => setPage(view.page + 1)}>Next</Button></div>}</div>}
     </section>
 
     <Dialog open={Boolean(form)} onOpenChange={(v) => { if (!v && !busy) setForm(null); }}><DialogContent><DialogHeader><DialogTitle>{form?.id ? "Edit user" : "Add team user"}</DialogTitle></DialogHeader>{form && <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); saveUser(); }}>

@@ -30,4 +30,4 @@ Verified editor upload, brand-color extraction, quick row replacement, reload an
 - [x] Downloads page in nav with search, category/format chips, sorting, download + preview.
 
 # Team access
-- [x] Team users in /manage (default password, roles, territory, active toggle, reset, bulk add, 10-user projection) + footer access/status.
+- [x] Team users in /manage (default password, roles, territory, active toggle, reset, bulk add, unlimited users, role counts, paged directory) + footer access/status.

@@ -4,7 +4,6 @@ export const TEAM_ROLES = [
   { value: "admin", label: "Admin" },
 ] as const;
 export type TeamRole = (typeof TEAM_ROLES)[number]["value"];
-export const DEFAULT_TEAM_TARGET = 10;
 export const MIN_PASSWORD = 8;
 
 /** Custom password wins; otherwise the admin's default password is used. */
@@ -14,9 +13,15 @@ export function resolvePassword(custom: string, fallback: string) {
   return pw;
 }
 
-export function teamCapacity(active: number, target = DEFAULT_TEAM_TARGET) {
-  const t = Math.max(1, target);
-  return { active, target: t, remaining: Math.max(0, t - active), percent: Math.min(100, Math.round((active / t) * 100)) };
+export const TEAM_PAGE_SIZE = 25;
+/** Unlimited team: plain counts, no cap. */
+export function teamStats(members: { role: string; is_active: boolean }[]) {
+  const count = (r: string) => members.filter((m) => m.role === r).length;
+  return { total: members.length, active: members.filter((m) => m.is_active).length, admin: count("admin"), manager: count("manager"), mr: count("mr") };
+}
+export function pageOf<T>(rows: T[], page: number, size = TEAM_PAGE_SIZE) {
+  const pages = Math.max(1, Math.ceil(rows.length / size)); const p = Math.min(Math.max(1, page), pages);
+  return { rows: rows.slice((p - 1) * size, p * size), page: p, pages };
 }
 
 /** Parses "Name, email, role, territory" lines for quick add. */

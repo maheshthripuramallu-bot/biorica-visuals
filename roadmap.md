@@ -31,3 +31,10 @@ Verified editor upload, brand-color extraction, quick row replacement, reload an
 
 # Team access
 - [x] Team users in /manage (default password, roles, territory, active toggle, reset, bulk add, unlimited users, role counts, paged directory) + footer access/status.
+
+# Verify Data editor
+- [x] Replace verification with structured editable fields, dynamic lists and a sticky live preview.
+- [x] Verify edited data reaches final generation, check desktop/mobile layouts and run regression tests.
+- [ ] Retry generation with the same product photo to verify the upload-size fix — waiting for the user to attach the original photo (not present in accessible uploads).
+
+Verified signed-in real AI brief generation, edits to all text fields, list add/edit/delete, desktop and mobile previews, edited final request and completed PNG download. All 68 regression tests pass.

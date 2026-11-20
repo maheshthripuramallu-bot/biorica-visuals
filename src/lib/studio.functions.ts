@@ -178,6 +178,7 @@ export const generateCreative = createServerFn({ method: "POST" })
         analysis: z.object({
           brand_name: z.string().max(200),
           composition: z.string().max(1000),
+          dosage_form: z.string().max(200).default(""),
           headline: z.string().max(300),
           tagline: z.string().max(400),
           indications: z.array(z.string().max(200)).max(4),
@@ -208,6 +209,7 @@ export const generateCreative = createServerFn({ method: "POST" })
         : `Headline text: "${a.headline}"`,
       `Sub-line text: "${a.tagline}"`,
       `Composition text (small, clearly legible): "${a.composition}"`,
+      a.dosage_form ? `Dosage form: "${a.dosage_form}".` : "",
       `Key indications as short bullets: ${a.indications.map((i) => `"${i}"`).join(", ")}.`,
       `USP highlights: ${a.usps.map((u) => `"${u}"`).join(", ")}.`,
       portfolio ? `Brands to show (each pack clearly, names spelled exactly): ${data.productNames.map((n) => `"${n}"`).join(", ")}.` : "",

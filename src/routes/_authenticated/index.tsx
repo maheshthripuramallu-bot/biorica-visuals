@@ -55,6 +55,7 @@ import { GreetingStudio, companyLogoQuery } from "@/components/greeting-studio";
 import { ProductPicker } from "@/components/product-picker";
 import { VisitingCardStudio } from "@/components/visiting-card-studio";
 import { ClinicalBriefEditor, ProductBriefEditor } from "@/components/clinical-brief";
+import { finalBrief } from "@/lib/brief-editor";
 
 export const Route = createFileRoute("/_authenticated/")({
   validateSearch: (search: Record<string, unknown>): { product?: string | undefined; tab?: "greetings" | "case" | "cards" | undefined } => ({
@@ -139,6 +140,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
   const studioLogo = pickLogo(logoLib, logoChoice, true) || logoUrl || "/biorica-logo.png";
   const [phase, setPhase] = useState<"idle" | "analyzing" | "brief" | "generating" | "done">("idle");
   const [analysis, setAnalysis] = useState<PackAnalysis | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const [creatives, setCreatives] = useState<Creative[]>([]);
   const [viewer, setViewer] = useState<number | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -250,6 +252,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
         },
       });
       setAnalysis(result);
+      setShowSettings(false);
       setPhase("brief");
     } catch (e) {
       toast.error(friendlyAiError(e, "Analysis failed"));
@@ -258,8 +261,8 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
   }
 
   async function generateFinal() {
-    const result = analysis;
-    if (!result) return;
+    if (!analysis) return;
+    const result = finalBrief(analysis);
     const count = clampVariations(variations);
     setPhase("generating");
     const type = creativeType;
@@ -297,22 +300,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
               productNames: mode === "portfolio" ? pickedProducts.map((p) => p.brand_name) : [],
               specialty,
               variation: c.variation,
-              analysis: {
-                brand_name: result.brand_name,
-                composition: result.composition,
-                headline: result.headline,
-                tagline: result.tagline,
-                indications: result.indications,
-                usps: result.usps,
-                patient_persona: result.patient_persona,
-                patient_name: result.patient_name,
-                patient_age: result.patient_age,
-                patient_occupation: result.patient_occupation,
-                patient_symptoms: result.patient_symptoms,
-                how_it_works: result.how_it_works,
-                dosage_guide: result.dosage_guide,
-                prescribed_for: result.prescribed_for,
-              },
+              analysis: result,
             },
           });
           const withFooter = await addBioricaFooter(res.image, { company, showPhone, accent, note, print: quality === "print", logoUrl: footerLogo, logoSize });
@@ -401,9 +389,9 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
         </div>
       </section>
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:gap-8">
+      <div className={cn("mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:gap-8", !analysis && "lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)]")}>
         {/* Form */}
-        <section className="min-w-0 h-fit p-5 surface-card sm:p-6 lg:sticky lg:top-24">
+        {(!analysis || showSettings) && <section className={cn("min-w-0 h-fit p-5 surface-card sm:p-6", !analysis && "lg:sticky lg:top-24")}>
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-primary">Product pack</h2>
             <span className="text-xs font-medium tabular-nums text-muted-foreground">
@@ -628,7 +616,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
               {phase === "analyzing" ? "Drafting the clinical brief…" : phase === "generating" ? "Creating visual aids…" : caseMode ? "Generate Clinical Brief" : "Auto-Generate Indications & Visual Aids"}
             </Button>
           </div>
-        </section>
+        </section>}
 
         {/* Output */}
         <section ref={outputRef} className="min-w-0 scroll-mt-24 space-y-6">
@@ -638,10 +626,17 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
             <>
               {phase === "analyzing" ? <AnalysisPanel analysis={null} loading /> : analysis && (
                 <>
-                  {caseMode ? <ClinicalBriefEditor brief={analysis} onChange={setAnalysis} /> : <ProductBriefEditor brief={analysis} onChange={setAnalysis} />}
-                  <Button variant="teal" size="xl" className="w-full" onClick={generateFinal} disabled={busy}>
-                    {phase === "generating" ? <Loader2 className="animate-spin" /> : <Wand2 />} {caseMode ? "Generate Clinical Poster" : "Generate Final Visual"}
-                  </Button>
+                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-5">
+                    <h2 className="text-xl font-bold text-primary">Verify Data</h2>
+                    <Button variant="outline" onClick={() => setShowSettings((value) => !value)} disabled={busy}>{showSettings ? "Hide generation settings" : "Edit generation settings"}</Button>
+                  </div>
+                  {caseMode ? <ClinicalBriefEditor brief={analysis} onChange={setAnalysis} disabled={busy} {...(images[0]?.dataUrl || selectedProduct?.pack_image_url ? { packImage: images[0]?.dataUrl || selectedProduct?.pack_image_url || "" } : {})} /> : <ProductBriefEditor brief={analysis} onChange={setAnalysis} disabled={busy} {...(images[0]?.dataUrl || selectedProduct?.pack_image_url ? { packImage: images[0]?.dataUrl || selectedProduct?.pack_image_url || "" } : {})} />}
+                  <div className="sticky bottom-20 z-20 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 shadow-elevated sm:bottom-4">
+                    <span className="text-sm font-semibold text-primary">Verify Data</span>
+                    <Button variant="teal" size="xl" className="h-auto min-h-12 w-full whitespace-normal px-4 py-3 sm:w-auto" onClick={generateFinal} disabled={busy}>
+                      {phase === "generating" ? <Loader2 className="animate-spin" /> : <Wand2 />} Proceed to Final Visual
+                    </Button>
+                  </div>
                 </>
               )}
               {creatives.length > 0 && (

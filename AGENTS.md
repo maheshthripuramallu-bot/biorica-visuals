@@ -42,3 +42,4 @@ use the editor.
 - Team user accounts are created/updated only through admin-checked server functions using the service client; individual passwords are never stored readable (shown once on create/reset).
 - Every portal page lives under the client-only `_authenticated` gate (only /auth, /reset-password and api routes are public) and self sign-up is disabled, because the portal is team-only with admin-created logins.
 - Login User IDs map to the real email when given, else a private <id>@team.biorica.local address; sign-in resolves User ID/email server-side and returns only session tokens, so handles never expose emails.
+- Verification editors and live previews share the Studio draft; final generation snapshots that edited draft and omits only empty list rows, so no raw AI response can overwrite user changes.

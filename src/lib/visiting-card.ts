@@ -1,7 +1,7 @@
 import { fitLogo } from "@/lib/logo";
 const LOGO_MAX_W = 0.75;
 import QRCode from "qrcode";
-import { drawOverlayText, paintTemplate, type DesignTemplate, type TextStyle } from "./card-design";
+import { drawOverlayText, paintTemplate, type DesignTemplate, type ElementStyles } from "./card-design";
 
 export const CARD_W = 1050; // 3.5in @ 300 DPI
 export const CARD_H = 600; // 2in @ 300 DPI
@@ -34,7 +34,7 @@ export type VisitingCard = {
   website: string; address: string; showPhoto: boolean; photo: string; qr: QrTarget; brands: string[]; template: CardTemplate;
 };
 /** logo = finish for light surfaces, logoOnDark = finish for dark/coloured surfaces (both transparent, never boxed). */
-export type CardBrand = { companyName: string; tagline: string; logo: string; logoOnDark: string; primary: string; accent: string; logoPrimary: string; logoAccent: string; font: string; logoHeight?: number; backLogo?: string | undefined; backLogoOnDark?: string | undefined; design?: { template: DesignTemplate; style: TextStyle } | undefined };
+export type CardBrand = { companyName: string; tagline: string; logo: string; logoOnDark: string; primary: string; accent: string; logoPrimary: string; logoAccent: string; font: string; logoHeight?: number; backLogo?: string | undefined; backLogoOnDark?: string | undefined; design?: { template: DesignTemplate; styles: ElementStyles } | undefined };
 
 const esc = (s: string) => s.replace(/([\\;,])/g, "\\$1").replace(/\n/g, "\\n");
 export const digits = (s: string) => s.replace(/[^\d+]/g, "");
@@ -198,16 +198,17 @@ async function drawBack(ctx: CanvasRenderingContext2D, c: VisitingCard, b: CardB
 
 /** Design-engine front: template artwork, logo in the free top corner, styled text at the spawn point. */
 async function drawDesignFront(ctx: CanvasRenderingContext2D, c: VisitingCard, b: CardBrand) {
-  const { template, style } = b.design!;
+  const { template, styles } = b.design!; const style = styles.header;
   ctx.save(); ctx.translate(-BLEED, -BLEED); await paintTemplate(ctx, template, CARD_W + 2 * BLEED, CARD_H + 2 * BLEED); ctx.restore();
   const hex = style.color.replace("#", ""); const lum = hex.length === 6 ? (parseInt(hex.slice(0, 2), 16) * 299 + parseInt(hex.slice(2, 4), 16) * 587 + parseInt(hex.slice(4, 6), 16) * 114) / 1000 : 0;
   const logo = await load(lum > 150 ? b.logoOnDark : b.logo); const ld = logoDims(logo, CARD_W, Math.min(b.logoHeight ?? 105, 120), CARD_W * 0.38);
   drawLogo(ctx, logo, style.align === "right" ? 56 : CARD_W - 56 - ld.w, 40, ld);
-  const contacts = [c.phone && `M: ${[c.phone, c.phone2].filter(Boolean).join(" | ")}`, c.email, c.website.replace(/^https?:\/\//, "")].filter(Boolean) as string[];
+  const contacts = [c.phone && `M: ${[c.phone, c.phone2].filter(Boolean).join(" | ")}`, c.email].filter(Boolean) as string[];
   await drawOverlayText(ctx, [
-    { text: c.fullName || "Your Name", rel: 1, weight: 700 }, { text: c.designation, rel: 0.55, weight: 600 }, { text: c.territory, rel: 0.45, weight: 400 },
-    ...contacts.map((t) => ({ text: t, rel: 0.42, weight: 500 })),
-  ], style, template, CARD_W, CARD_H, CARD_H * 0.1);
+    { text: c.fullName || "Your Name", rel: 1, weight: 700, style: styles.header }, { text: c.designation, rel: 0.55, weight: 600, style: styles.subject }, { text: c.territory, rel: 0.45, weight: 400, style: styles.tagline },
+    ...contacts.map((t) => ({ text: t, rel: 0.42, weight: 500, style: styles.body })),
+    { text: c.website.replace(/^https?:\/\//, ""), rel: 0.42, weight: 600, style: styles.footer },
+  ], template, CARD_W, CARD_H, CARD_H * 0.1);
 }
 
 function contactRows(c: VisitingCard) {

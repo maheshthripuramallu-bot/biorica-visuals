@@ -23,8 +23,8 @@ import { renderGreeting } from "@/lib/greeting-canvas";
 import { getCompanyLogo, writeGreeting, generateGreetingBackground } from "@/lib/greetings.functions";
 import { blobToDataUrl, compressImage, dataUrlToBlob, downloadDataUrl, slugify } from "@/lib/canvas";
 import type { Json } from "@/integrations/supabase/types";
-import { TemplateGallery, TextStyleControls } from "@/components/design-controls";
-import { defaultStyle, type DesignTemplate, type TextStyle } from "@/lib/card-design";
+import { ElementStyleControls, TemplateGallery } from "@/components/design-controls";
+import { defaultElementStyles, type DesignTemplate, type ElementStyles } from "@/lib/card-design";
 
 export const companyLogoQuery = { queryKey: ["company-logo"], queryFn: () => getCompanyLogo(), staleTime: 60_000 };
 type Card = { id: string; greeting: Greeting; image: string; saved: boolean };
@@ -46,8 +46,8 @@ export function GreetingStudio() {
   const [writing, setWriting] = useState(false); const [saving, setSaving] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState(""); const [progress, setProgress] = useState("");
   const output = useRef<HTMLDivElement>(null);
-  const [design, setDesign] = useState<DesignTemplate | null>(null); const [textStyle, setTextStyle] = useState<TextStyle>(defaultStyle(undefined));
-  const designArg = design ? { template: design, style: textStyle } : undefined;
+  const [design, setDesign] = useState<DesignTemplate | null>(null); const [textStyle, setTextStyle] = useState<ElementStyles>(defaultElementStyles(undefined));
+  const designArg = design ? { template: design, styles: textStyle } : undefined;
   const autoWrite = useServerFn(writeGreeting); const createBackground = useServerFn(generateGreetingBackground);
   const historyKey = ["greeting-history", auth?.user?.id];
   const history = useQuery({ queryKey: historyKey, enabled: Boolean(auth?.user), queryFn: async () => {
@@ -146,8 +146,8 @@ export function GreetingStudio() {
           {g.products.length > 0 && <div className="grid grid-cols-2 gap-2"><Button type="button" variant={g.productDisplay === "text" ? "teal" : "outline"} onClick={() => update("productDisplay", "text")}>Brand text strip</Button><Button type="button" variant={g.productDisplay === "packs" ? "teal" : "outline"} onClick={() => update("productDisplay", "packs")}>Mini pack thumbnails</Button></div>}
         </fieldset>
         <fieldset className="space-y-3 border-t border-border pt-5"><legend className="text-lg font-bold">Design engine</legend>
-          <TemplateGallery kind="greeting" value={design?.id ?? null} noneLabel="AI background (classic)" onChange={(t) => { setDesign(t); if (t) setTextStyle(defaultStyle(t)); }} />
-          {design && <TextStyleControls idPrefix="greet-text" value={textStyle} onChange={setTextStyle} />}
+          <TemplateGallery kind="greeting" value={design?.id ?? null} noneLabel="AI background (classic)" onChange={(t) => { setDesign(t); if (t) setTextStyle(defaultElementStyles(t)); }} />
+          {design && <ElementStyleControls kind="greeting" idPrefix="greet-text" value={textStyle} onChange={setTextStyle} />}
         </fieldset>
         <fieldset className="space-y-3 border-t border-border pt-5"><legend className="text-lg font-bold">Design & format</legend>
           <Label htmlFor="greeting-style">Design style</Label><select id="greeting-style" className={selectClass} value={g.style} onChange={(e) => { const style = GREETING_STYLES.find((s) => s === e.target.value); if (style) update("style", style); }}>{GREETING_STYLES.map((s) => <option key={s}>{s}</option>)}</select>

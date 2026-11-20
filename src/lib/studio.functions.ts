@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { CREATIVE_TYPES, CREATIVE_TYPE_VALUES, DETAILING_FOCUS_VALUES } from "./catalog";
+import { CREATIVE_STYLE_VALUES, CREATIVE_TYPES, CREATIVE_TYPE_VALUES, DETAILING_FOCUS_VALUES, MAX_CREATIVE_STYLES } from "./catalog";
 import { BRIEF_LIST_MAX } from "./brief-editor";
 import { editImage, generateImage, generateResponse, GatewayError } from "@lovable.dev/ai-gateway";
 
@@ -148,6 +148,17 @@ const ART: Record<string, string> = {
   indian: "Art direction: warm Indian clinic lifestyle, natural light, relatable Indian doctors and patients.",
 };
 
+const STYLE_PROMPTS: Record<string, string> = {
+  scientific: "Scientific — molecular/anatomical detail, lab-grade precision.",
+  minimalist: "Minimalist — generous white space, few elements, restrained palette.",
+  infographic: "Infographic — icon-led data blocks and clear visual hierarchy (no statistics).",
+  corporate: "Corporate — structured grid, trustworthy pharma brand tone.",
+  "3d": "3D Render — glossy rendered pack and objects with soft studio lighting.",
+  photoreal: "Photorealistic — natural clinical photography.",
+  illustrative: "Flat Illustration — clean vector illustrations and simple shapes.",
+  premium: "Premium Luxury — rich dark tones, metallic accents, elegant serif headline.",
+};
+
 const FOCUS: Record<string, (specialty: string) => string> = {
   auto: () => "",
   indication: () => "DETAILING FOCUS — Indication: the headline and bullet callouts lead with the target conditions, key symptoms and therapeutic relief; indications get the largest text after the headline; pack secondary.",
@@ -175,6 +186,8 @@ export const generateCreative = createServerFn({ method: "POST" })
         creativeType: z.enum(CREATIVE_TYPE_VALUES),
         artDirection: z.enum(["mnc", "3d", "swiss", "indian"]).default("mnc"),
         focus: z.enum(DETAILING_FOCUS_VALUES).default("auto"),
+        focuses: z.array(z.enum(DETAILING_FOCUS_VALUES)).max(7).default([]),
+        styles: z.array(z.enum(CREATIVE_STYLE_VALUES)).max(MAX_CREATIVE_STYLES).default([]),
         productNames: z.array(z.string().max(200)).max(10).default([]),
         logo: dataUrl.optional(),
         brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
@@ -239,7 +252,10 @@ export const generateCreative = createServerFn({ method: "POST" })
         ? "Clinical evidence may appear only as the supplied texts; never invent trial numbers."
         : "STRICTLY EXCLUDE clinical data: no clinical trial results, study names, charts, percentages, statistics or p-values. Show only branding, composition, indications, dosage and USPs.",
       ["slide", "poster", "whatsapp"].includes(data.creativeType) && !portfolio ? LAYOUTS[data.variation % LAYOUTS.length] : `Variation ${data.variation + 1}: vary composition and camera angle.`,
-      data.creativeType === "case_poster" ? ART[data.artDirection] : FOCUS[data.focus]?.(data.specialty) || ART[data.artDirection],
+      data.creativeType === "case_poster"
+        ? ART[data.artDirection]
+        : [...new Set([...data.focuses, data.focus])].map((f) => FOCUS[f]?.(data.specialty) ?? "").filter(Boolean).join("\n") || ART[data.artDirection],
+      data.styles.length ? `Creative style (blend these): ${data.styles.map((v) => STYLE_PROMPTS[v]).join(" ")}` : "",
       data.brandColor
         ? `Palette: match the product pack — use ${data.brandColor} as the dominant brand colour for headline accents, borders, icons and highlight shapes, paired with dark neutral typography and white space. Do not use teal unless it is the pack colour. Crisp sans-serif type, soft shadows. Spell every word exactly as given. No fake statistics, no QR codes.`
         : "",

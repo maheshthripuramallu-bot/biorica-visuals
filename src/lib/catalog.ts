@@ -96,6 +96,32 @@ export function toggleFocus(current: DetailingFocus, clicked: DetailingFocus): D
   return current === clicked ? "auto" : clicked;
 }
 
+/** Multi-select focus: empty list means Auto (Balanced). */
+export function toggleFocusList(list: DetailingFocus[], clicked: DetailingFocus): DetailingFocus[] {
+  if (clicked === "auto") return [];
+  return list.includes(clicked) ? list.filter((f) => f !== clicked) : [...list, clicked];
+}
+
+/** Visual style chips for Product Visual Aids and Clinical Case Poster (max 3 at once). */
+export const CREATIVE_STYLES = [
+  { value: "scientific", label: "Scientific" },
+  { value: "minimalist", label: "Minimalist" },
+  { value: "infographic", label: "Infographic" },
+  { value: "corporate", label: "Corporate" },
+  { value: "3d", label: "3D Render" },
+  { value: "photoreal", label: "Photorealistic" },
+  { value: "illustrative", label: "Flat Illustration" },
+  { value: "premium", label: "Premium Luxury" },
+] as const;
+export type CreativeStyle = (typeof CREATIVE_STYLES)[number]["value"];
+export const CREATIVE_STYLE_VALUES = CREATIVE_STYLES.map((s) => s.value) as [CreativeStyle, ...CreativeStyle[]];
+export const MAX_CREATIVE_STYLES = 3;
+/** Toggle a chip but never exceed `max` selections (extra clicks are ignored). */
+export function toggleLimited<T>(list: T[], value: T, max: number): T[] {
+  if (list.includes(value)) return list.filter((v) => v !== value);
+  return list.length >= max ? list : [...list, value];
+}
+
 export const COMPLIANCE_FOOTERS = [
   { value: "rmp", label: "For Registered Medical Practitioners Only", text: "For the use of Registered Medical Practitioners only" },
   { value: "nutra", label: "Nutraceutical — Not for Medicinal Use", text: "Nutraceutical — Not for Medicinal Use" },

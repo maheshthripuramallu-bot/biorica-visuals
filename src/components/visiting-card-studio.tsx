@@ -24,8 +24,8 @@ import { asFinish } from "@/lib/company";
 import { LogoFinishSelect, LogoPicker, LogoSizeSelect, logoLibraryQuery } from "@/components/logo-finish-select";
 import { pickLogo, type LogoChoice } from "@/lib/logo-library";
 import { asLogoSize, cardLogoHeight, type LogoSize } from "@/lib/logo";
-import { TemplateGallery, TextStyleControls } from "@/components/design-controls";
-import { defaultStyle, type DesignTemplate, type TextStyle } from "@/lib/card-design";
+import { ElementStyleControls, TemplateGallery } from "@/components/design-controls";
+import { defaultElementStyles, type DesignTemplate, type ElementStyles } from "@/lib/card-design";
 
 const DEFAULT_TAGLINE = "Advancing Science, Enriching Lives";
 type Saved = { id: string; full_name: string; designation: string; details: Json; updated_at: string };
@@ -51,7 +51,7 @@ export function VisitingCardStudio() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [design, setDesign] = useState<DesignTemplate | null>(null);
-  const [textStyle, setTextStyle] = useState<TextStyle>(defaultStyle(undefined));
+  const [textStyle, setTextStyle] = useState<ElementStyles>(defaultElementStyles(undefined));
   const set = <K extends keyof VisitingCard>(k: K, v: VisitingCard[K]) => setCard((c) => ({ ...c, [k]: v }));
 
   // Auto-fill website/address from Admin settings until the user edits them.
@@ -68,7 +68,7 @@ export function VisitingCardStudio() {
 
   const brand: CardBrand = useMemo(() => {
     const t = resolveTheme(company);
-    return { companyName: company.company_name || DEFAULT_COMPANY.company_name, tagline, logo: logos?.light ?? logoSrc, logoOnDark: logos?.dark ?? logoSrc, backLogo: logos?.backLight, backLogoOnDark: logos?.backDark, primary: t.primary, accent: t.accent, logoPrimary: logoColors?.[0] ?? company.custom_primary_color, logoAccent: logoColors?.[1] ?? company.custom_accent_color, font: t.heading, logoHeight: cardLogoHeight(logoSize), design: design ? { template: design, style: textStyle } : undefined };
+    return { companyName: company.company_name || DEFAULT_COMPANY.company_name, tagline, logo: logos?.light ?? logoSrc, logoOnDark: logos?.dark ?? logoSrc, backLogo: logos?.backLight, backLogoOnDark: logos?.backDark, primary: t.primary, accent: t.accent, logoPrimary: logoColors?.[0] ?? company.custom_primary_color, logoAccent: logoColors?.[1] ?? company.custom_accent_color, font: t.heading, logoHeight: cardLogoHeight(logoSize), design: design ? { template: design, styles: textStyle } : undefined };
   }, [company, tagline, logoSrc, logoColors, logos, logoSize, design, textStyle]);
 
   useEffect(() => {
@@ -155,8 +155,8 @@ export function VisitingCardStudio() {
             <ul className="max-h-44 space-y-0.5 overflow-y-auto rounded-md border border-border p-1.5">{catalog.products.map((p) => { const on = card.brands.includes(p.brand_name); const full = !on && card.brands.length >= MAX_CARD_BRANDS; return <li key={p.id}><label className={cn("flex cursor-pointer items-center gap-2 rounded p-1.5 text-sm hover:bg-accent", full && "cursor-not-allowed opacity-50")}><Checkbox checked={on} disabled={full} onCheckedChange={() => toggleBrand(p.brand_name)} />{p.brand_name}</label></li>; })}</ul></div>
 
           <h2 className="pt-2 text-lg font-bold text-primary">Design engine</h2>
-          <TemplateGallery kind="visiting" value={design?.id ?? null} noneLabel="Classic layouts (below)" onChange={(t) => { setDesign(t); if (t) { setTextStyle(defaultStyle(t)); if (card.template === "vertical") set("template", "split"); } }} />
-          {design && <TextStyleControls idPrefix="vc-text" value={textStyle} onChange={setTextStyle} />}
+          <TemplateGallery kind="visiting" value={design?.id ?? null} noneLabel="Classic layouts (below)" onChange={(t) => { setDesign(t); if (t) { setTextStyle(defaultElementStyles(t)); if (card.template === "vertical") set("template", "split"); } }} />
+          {design && <ElementStyleControls kind="visiting" idPrefix="vc-text" value={textStyle} onChange={setTextStyle} />}
           <h2 className="pt-2 text-lg font-bold text-primary">{design ? "Card back layout" : "Design"}</h2>
           <div className="grid grid-cols-2 gap-2">{CARD_TEMPLATES.map((t) => <button key={t.value} type="button" aria-pressed={card.template === t.value} onClick={() => set("template", t.value)} className={cn("flex flex-col items-center gap-1.5 rounded-xl border p-2 text-xs font-semibold", card.template === t.value ? "border-teal bg-teal-soft/50 text-primary ring-2 ring-teal/20" : "border-border bg-card text-muted-foreground")}>
             <span className="grid h-20 w-full place-items-center">{thumbs[t.value] ? <img src={thumbs[t.value]} alt="" className={cn("max-h-20 max-w-full shadow-card", corners === "rounded" ? "rounded-md" : "rounded-none")} /> : <Loader2 className="size-4 animate-spin" />}</span>{t.label}</button>)}</div>

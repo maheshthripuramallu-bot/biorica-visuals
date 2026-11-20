@@ -352,6 +352,24 @@ export type Database = {
         }
         Relationships: []
       }
+      template_visibility: {
+        Row: {
+          is_visible: boolean
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          is_visible?: boolean
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          is_visible?: boolean
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

@@ -36,7 +36,12 @@ import {
   CREATIVE_TYPES,
   ART_DIRECTIONS,
   DETAILING_FOCUS,
-  toggleFocus,
+  CREATIVE_STYLES,
+  MAX_CREATIVE_STYLES,
+  toggleLimited,
+  toggleFocusList,
+  toggleTag,
+  type CreativeStyle,
   type DetailingFocus,
   COMPLIANCE_FOOTERS,
   layoutModeFor,
@@ -117,17 +122,20 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
   const [images, setImages] = useState<PackImg[]>([]);
   const [compressing, setCompressing] = useState(0);
   const [dragging, setDragging] = useState(false);
-  const [divisionId, setDivisionId] = useState<string>("");
+  const [divisionIds, setDivisionIds] = useState<string[]>([]);
+  const setDivisionId = (id: string) => setDivisionIds(id ? [id] : []);
   const [brandHint, setBrandHint] = useState("");
   const [productId, setProductId] = useState<string | null>(null);
-  const [specialty, setSpecialty] = useState<string>("General Physician");
+  const [specialties, setSpecialties] = useState<string[]>([]);
+  const specialty = specialties.join(", ") || "General Physician";
+  const [styles, setStyles] = useState<CreativeStyle[]>([]);
   const [creativeType, setCreativeType] = useState<CreativeType>(caseMode ? "case_poster" : "slide");
   const [variations, setVariations] = useState(caseMode ? 1 : 2);
   const [matchPack, setMatchPack] = useState(true);
   const [showPhone, setShowPhone] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [artDirection, setArtDirection] = useState<ArtDirection>("mnc");
-  const [focus, setFocus] = useState<DetailingFocus>("auto");
+  const [focuses, setFocuses] = useState<DetailingFocus[]>([]);
   const [logoFinish, setLogoFinish] = useState<LogoFinishChoice>("auto");
   const [pickedSize, setLogoSize] = useState<LogoSize | null>(null);
   const [compliance, setCompliance] = useState<ComplianceFooter>("rmp");
@@ -176,7 +184,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
     }
     return out;
   }
-  const division = catalog.divisions.find((d) => d.id === divisionId);
+  const divisionNames = catalog.divisions.filter((d) => divisionIds.includes(d.id)).map((d) => d.name).join(", ");
 
   // Pre-fill from a product ("Generate Visual Aid" buttons elsewhere in the app)
   useEffect(() => {
@@ -246,7 +254,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
           images: [...images.map((i) => i.dataUrl), ...(images.length ? [] : packs)].slice(0, 5),
           brandHint: mode === "portfolio" ? "" : brandHint.trim(),
           mode: caseMode ? "case" : "product",
-          division: division?.name ?? "",
+          division: divisionNames,
           specialty,
           knownComposition: mode === "portfolio" ? "" : selectedProduct?.composition ?? "",
           products: mode === "portfolio" ? pickedProducts.map((p) => ({ brand_name: p.brand_name, composition: p.composition })) : [],
@@ -295,7 +303,8 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
               images: sendImages,
               creativeType: type,
               artDirection,
-              ...(caseMode ? {} : { focus }),
+              ...(caseMode ? {} : { focuses }),
+              styles,
               ...(logoData ? { logo: logoData } : {}),
               ...(accent && /^#[0-9a-f]{6}$/i.test(accent) ? { brandColor: accent } : {}),
               productNames: mode === "portfolio" ? pickedProducts.map((p) => p.brand_name) : [],
@@ -463,31 +472,22 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
           <ProductPicker catalog={catalog} selected={selectedIds} onChange={changeSelection} />
 
           <div className="mt-6 space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label>Division</Label>
-                <Select value={divisionId} onValueChange={(v) => setDivisionId(v)}>
-                  <SelectTrigger className="h-11 bg-card"><SelectValue placeholder="Select division" /></SelectTrigger>
-                  <SelectContent>
-                    {catalog.divisions.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-1.5">
+              <Label>Division <span className="font-normal text-muted-foreground">(optional · select any)</span></Label>
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Division">
+                {catalog.divisions.map((d) => (
+                  <button key={d.id} type="button" aria-pressed={divisionIds.includes(d.id)} onClick={() => setDivisionIds((l) => toggleTag(l, d.id))}
+                    className={cn("rounded-full border px-3 py-1.5 text-xs font-medium transition-colors", divisionIds.includes(d.id) ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:border-primary/50")}>{d.name}</button>
+                ))}
               </div>
-              <div className="space-y-1.5">
-                <Label>Doctor specialty</Label>
-                <Select value={specialty} onValueChange={setSpecialty}>
-                  <SelectTrigger className="h-11 bg-card">
-                    <Stethoscope className="size-4 text-muted-foreground" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SPECIALTIES.map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5"><Stethoscope className="size-4 text-muted-foreground" />Doctor specialty <span className="font-normal text-muted-foreground">(optional · select any)</span></Label>
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Doctor specialty">
+                {SPECIALTIES.map((sp) => (
+                  <button key={sp} type="button" aria-pressed={specialties.includes(sp)} onClick={() => setSpecialties((l) => toggleTag(l, sp))}
+                    className={cn("rounded-full border px-3 py-1.5 text-xs font-medium transition-colors", specialties.includes(sp) ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:border-primary/50")}>{sp}</button>
+                ))}
               </div>
             </div>
 
@@ -527,7 +527,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
             </div>
 
             {!caseMode && <div className="space-y-1.5">
-              <Label>Creative type</Label>
+              <Label>Format</Label>
               <div className="grid grid-cols-3 gap-2">
                 {CREATIVE_TYPES.filter((t) => t.value !== "case_poster").map((t) => (
                   <button
@@ -557,15 +557,17 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
             {!caseMode && <div className="space-y-1.5">
               <Label>Detailing Focus (Optional)</Label>
               <div className="flex flex-wrap gap-2" role="group" aria-label="Detailing focus">
-                {DETAILING_FOCUS.map((f) => (
-                  <button key={f.value} type="button" title={f.hint} aria-pressed={focus === f.value}
-                    onClick={() => setFocus((cur) => toggleFocus(cur, f.value))}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${focus === f.value ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:border-primary/50"}`}>
+                {DETAILING_FOCUS.map((f) => {
+                  const on = f.value === "auto" ? !focuses.length : focuses.includes(f.value);
+                  return (
+                  <button key={f.value} type="button" title={f.hint} aria-pressed={on}
+                    onClick={() => setFocuses((cur) => toggleFocusList(cur, f.value))}
+                    className={cn("rounded-full border px-3 py-1.5 text-xs font-medium transition-colors", on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:border-primary/50")}>
                     {f.label}
-                  </button>
-                ))}
+                  </button>);
+                })}
               </div>
-              <p className="text-[11px] text-muted-foreground">{DETAILING_FOCUS.find((f) => f.value === focus)?.hint}</p>
+              <p className="text-[11px] text-muted-foreground">Select several, or none for a balanced visual.</p>
             </div>}
             {caseMode && <div className="space-y-1.5">
               <Label>Visual art direction</Label>
@@ -574,6 +576,17 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
                 <SelectContent>{ART_DIRECTIONS.map((a) => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>}
+            <div className="space-y-1.5">
+              <Label>Creative Type <span className="font-normal text-muted-foreground">({styles.length}/{MAX_CREATIVE_STYLES} · optional)</span></Label>
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Creative Type">
+                {CREATIVE_STYLES.map((st) => {
+                  const on = styles.includes(st.value), locked = !on && styles.length >= MAX_CREATIVE_STYLES;
+                  return <button key={st.value} type="button" aria-pressed={on} disabled={locked} onClick={() => setStyles((l) => toggleLimited(l, st.value, MAX_CREATIVE_STYLES))}
+                    className={cn("rounded-full border px-3 py-1.5 text-xs font-medium transition-colors", on ? "border-teal bg-teal text-primary-foreground" : "border-border bg-card text-foreground hover:border-teal/50", locked && "cursor-not-allowed opacity-40 hover:border-border")}>{st.label}</button>;
+                })}
+              </div>
+              {styles.length >= MAX_CREATIVE_STYLES && <p className="text-[11px] text-muted-foreground">Maximum of 3 reached — remove one to choose another.</p>}
+            </div>
             <LogoFinishSelect id="studio-logo-finish" value={logoFinish} onChange={setLogoFinish} />
             <LogoPicker value={logoChoice} onChange={setLogoChoice} dark />
             <LogoSizeSelect value={pickedSize ?? asLogoSize(company?.logo_size)} onChange={setLogoSize} />

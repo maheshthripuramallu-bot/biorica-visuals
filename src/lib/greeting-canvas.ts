@@ -1,22 +1,24 @@
 import { canvasLogoHeight, fitLogo, type LogoSize } from "@/lib/logo";
 import { loadImage } from "./canvas";
 import { DEFAULT_COMPANY, type CompanySettings } from "./company";
-import { anchorX, paintTemplate, type DesignTemplate, type TextStyle } from "./card-design";
+import { anchorX, paintTemplate, type DesignTemplate, type ElementKey, type ElementStyles } from "./card-design";
 import { greetingDimensions, LANGUAGE_FONTS, type Greeting } from "./greetings";
 
 // Canvas reads the same semantic palette as the page; typography is composed locally, never by AI.
-export async function renderGreeting(g: Greeting, logo = "", background = "", variation = 0, company: CompanySettings = DEFAULT_COMPANY, brandAccent = "", logoSize: LogoSize = "medium", design?: { template: DesignTemplate; style: TextStyle }) {
+export async function renderGreeting(g: Greeting, logo = "", background = "", variation = 0, company: CompanySettings = DEFAULT_COMPANY, brandAccent = "", logoSize: LogoSize = "medium", design?: { template: DesignTemplate; styles: ElementStyles }) {
   await document.fonts.ready;
   // A chosen design font leads; the regional Noto font remains the fallback for Indic glyphs.
-  const family = `${design ? `"${design.style.font}", ` : ""}"${LANGUAGE_FONTS[g.language]}", "Plus Jakarta Sans", sans-serif`;
-  await Promise.all([document.fonts.load(`500 32px ${family}`, g.headline + g.message + g.doctorName), document.fonts.load(`700 32px ${family}`, g.headline + g.doctorName)]);
+  const famFor = (el?: ElementKey) => `${design && el ? `"${design.styles[el].font}", ` : ""}"${LANGUAGE_FONTS[g.language]}", "Plus Jakarta Sans", sans-serif`;
+  let family = famFor();
+  const families = design ? (Object.keys(design.styles) as ElementKey[]).map(famFor) : [family];
+  await Promise.all(families.flatMap((f) => [document.fonts.load(`500 32px ${f}`, g.headline + g.message + g.doctorName), document.fonts.load(`700 32px ${f}`, g.headline + g.doctorName)]));
   const { width: w, height: h } = greetingDimensions(g.format);
   const canvas = document.createElement("canvas"); canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext("2d"); if (!ctx) throw new Error("Your browser cannot render this card.");
   const theme = getComputedStyle(document.documentElement);
   const token = (name: string) => theme.getPropertyValue(name).trim();
   const prefix = ["royal", "festive", "clinical", "floral", "vibrant"][["Classic Royal Navy & Gold", "Festive Traditional Indian", "Minimal Clinical White", "Floral & Elegant", "Modern Vibrant Festive"].indexOf(g.style)] ?? "royal";
-  const paper = token(`--greeting-${prefix}-paper`), ink = design?.style.color || token(`--greeting-${prefix}-ink`), accent = design ? design.style.color : (g.matchPalette ? g.products.find((p) => p.brand_color)?.brand_color : "") || brandAccent || token(`--greeting-${prefix}-accent`);
+  const paper = token(`--greeting-${prefix}-paper`), ink = design?.styles.body.color || token(`--greeting-${prefix}-ink`), accent = design ? design.styles.header.color : (g.matchPalette ? g.products.find((p) => p.brand_color)?.brand_color : "") || brandAccent || token(`--greeting-${prefix}-accent`);
   ctx.fillStyle = paper; ctx.fillRect(0, 0, w, h);
   if (design) await paintTemplate(ctx, design.template, w, h);
   if (background && !design) { const img = await loadImage(background); const scale = Math.max(w / img.width, h / img.height); ctx.drawImage(img, (w - img.width * scale) / 2, (h - img.height * scale) / 2, img.width * scale, img.height * scale); }
@@ -28,11 +30,18 @@ export async function renderGreeting(g: Greeting, logo = "", background = "", va
     // A solid quiet center keeps exact doctor details legible on every AI background.
     ctx.fillStyle = paper; ctx.globalAlpha = .96; ctx.fillRect(pad * .65, h * .14, w - pad * 1.3, h * .74); ctx.globalAlpha = 1;
   }
-  const align = design?.style.align ?? "center", scale = (design?.style.scale ?? 100) / 100;
-  const tx = design ? anchorX(align, design.template.x, w, pad) : w / 2;
+  let align: CanvasTextAlign & ("left" | "center" | "right") = design?.styles.subject.align ?? "center", scale = 1;
+  const anchor = (a: "left" | "center" | "right") => design ? anchorX(a, design.template.x, w, pad) : w / 2;
+  let tx = anchor(align);
   const dy = design ? (design.template.y - .5) * h * .3 : 0;
-  const textW = align === "center" ? Math.min(tx, w - tx) * 2 - pad * .5 : align === "left" ? w - tx - pad : tx - pad;
-  ctx.textAlign = align; ctx.textBaseline = "top";
+  let textW = 0;
+  /** Switch font, size scale, alignment and x anchor to one element's own style. */
+  const use = (el: ElementKey) => {
+    const st = design?.styles[el]; align = st?.align ?? "center"; scale = (st?.scale ?? 100) / 100; family = famFor(el); tx = anchor(align);
+    textW = align === "center" ? Math.min(tx, w - tx) * 2 - pad * .5 : align === "left" ? w - tx - pad : tx - pad; ctx.textAlign = align;
+    return st?.color;
+  };
+  use("subject"); ctx.textBaseline = "top";
   const lines = (text: string, fontSize: number, maxWidth: number) => {
     ctx.font = `500 ${fontSize}px ${family}`;
     const result: string[] = []; let line = "";
@@ -50,19 +59,22 @@ export async function renderGreeting(g: Greeting, logo = "", background = "", va
     ctx.font = `${weight} ${size}px ${family}`; ctx.fillStyle = color;
     rows.forEach((line, i) => ctx.fillText(line, tx, y + dy + i * size * 1.45));
   }
-  ctx.fillStyle = accent; ctx.font = `500 ${w * .022}px "Plus Jakarta Sans", sans-serif`;
+  use("header"); ctx.fillStyle = accent; ctx.font = `500 ${w * .022}px "Plus Jakarta Sans", sans-serif`;
   if (g.language === "English" || g.bilingual) ctx.fillText(["WITH WARMEST WISHES", "A SPECIAL WISH FOR YOU", "WITH HEARTFELT REGARDS"][variation % 3] ?? "WITH WARMEST WISHES", tx, h * .085 + dy);
   textBlock(g.headline || (g.occasion === "Birthday" ? "Happy Birthday" : g.occasion === "Wedding Anniversary" ? "Happy Anniversary" : g.occasion), h * .18, w * .055, h * .12, accent, 700);
+  use("subject");
   if (g.photo) {
     const photo = await loadImage(g.photo); const d = Math.min(w * .18, h * .16), x = align === "left" ? tx : align === "right" ? tx - d : tx - d / 2, y = h * .31 + dy;
     ctx.save(); ctx.beginPath(); if (g.circular) ctx.arc(x + d / 2, y + d / 2, d / 2, 0, Math.PI * 2); else ctx.rect(x, y, d, d); ctx.clip();
     const scale = Math.max(d / photo.width, d / photo.height); ctx.drawImage(photo, x + (d - photo.width * scale) / 2, y + (d - photo.height * scale) / 2, photo.width * scale, photo.height * scale); ctx.restore();
   }
   const nameY = g.photo ? h * .50 : h * .36;
-  textBlock(g.doctorName || "Doctor Name", nameY, w * .048, h * .09, ink, 700);
-  textBlock(g.qualification, nameY + h * .10, w * .023, h * .045, accent);
-  textBlock(g.message, nameY + h * .17, w * .024, (g.photo ? .13 : .22) * h, ink);
-  textBlock(g.regards ? (g.language !== "English" && !g.bilingual ? g.regards : `Warm regards, ${g.regards}`) : (g.language === "English" || g.bilingual ? "With best wishes" : ""), h * .805, w * .02, h * .035, ink);
+  textBlock(g.doctorName || "Doctor Name", nameY, w * .048, h * .09, use("subject") ?? ink, 700);
+  textBlock(g.qualification, nameY + h * .10, w * .023, h * .045, use("tagline") ?? accent);
+  textBlock(g.message, nameY + h * .17, w * .024, (g.photo ? .13 : .22) * h, use("body") ?? ink);
+  const regardsColor = use("footer") ?? ink;
+  textBlock(g.regards ? (g.language !== "English" && !g.bilingual ? g.regards : `Warm regards, ${g.regards}`) : (g.language === "English" || g.bilingual ? "With best wishes" : ""), h * .805, w * .02, h * .035, regardsColor);
+  ctx.textAlign = "center";
   if (g.products.length) {
     if (g.productDisplay === "text") textBlock(g.products.map((p) => p.brand_name).join("  |  "), h * .849, w * .018, h * .027, accent, 700);
     else {

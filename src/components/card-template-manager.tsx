@@ -8,14 +8,17 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { mediaUrl, randomFileName } from "@/lib/media";
 import { presetsFor, type TextAlign } from "@/lib/card-design";
-import { cardTemplatesQuery } from "./design-controls";
+import { cardTemplatesQuery, isVisible, templateVisibilityQuery, useAllDesignTemplates } from "./design-controls";
+import { Switch } from "@/components/ui/switch";
+import { templateThumb, type CardKind, type DesignTemplate } from "@/lib/card-design";
+import { useEffect } from "react";
 
 const TYPES = { "image/png": "png", "image/jpeg": "jpg", "image/svg+xml": "svg" } as const;
-const CATEGORIES = ["Corporate", "Festival", "Professional", "Celebration", "Gratitude", "Specialty", "General"];
+const CATEGORIES = ["Corporate", "Appreciation", "Professional", "Milestone", "Gratitude", "Science", "Specialty", "Wellness", "General"];
 const selectClass = "h-10 w-full rounded-md border border-input bg-card px-3 text-sm";
 const empty = { name: "", kind: "greeting" as "greeting" | "visiting", category: "General", text_x: 50, text_y: 50, text_align: "center" as TextAlign, text_color: "#0F172A" };
 
-export function CardTemplateManager() {
+function TemplateUploader() {
   const qc = useQueryClient(); const { data = [], isPending } = useQuery(cardTemplatesQuery);
   const [form, setForm] = useState(empty); const [file, setFile] = useState<File | null>(null); const [preview, setPreview] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -46,7 +49,7 @@ export function CardTemplateManager() {
     <div className="grid gap-8 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
       <form onSubmit={save} className="space-y-4">
         <h2 className="text-xl font-bold">Upload a card template</h2>
-        <p className="text-sm text-muted-foreground">Upload a blank background (JPG, PNG or SVG). Doctor and employee details are typed over it in the studios. {presetsFor("visiting").length + presetsFor("greeting").length} built-in designs are always available too.</p>
+        <p className="text-sm text-muted-foreground">Upload a blank background (JPG, PNG or SVG). Doctor and employee details are typed over it in the studios. {presetsFor("visiting").length + presetsFor("greeting").length} built-in designs are included — switch any template on or off below.</p>
         <Label htmlFor="tpl-file">Background image</Label>
         <label htmlFor="tpl-file" className="flex min-h-24 cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground" onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files[0]); }}><ImagePlus className="size-5" />{file ? file.name : "Drag & drop or click to choose"}</label>
         <input id="tpl-file" type="file" className="sr-only" accept="image/png,image/jpeg,image/svg+xml" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
@@ -76,5 +79,49 @@ export function CardTemplateManager() {
         </div>
       </div>
     </div>
+  );
+}
+
+export function CardTemplateManager() {
+  return <div className="space-y-10"><TemplateUploader /><TemplateVisibility /></div>;
+}
+
+/** Admin Active/Inactive switch for every built-in and uploaded template; studios only show active ones. */
+function TemplateVisibility() {
+  const qc = useQueryClient(); const [kind, setKind] = useState<CardKind>("visiting");
+  const templates = useAllDesignTemplates(kind); const { data: vis } = useQuery(templateVisibilityQuery);
+  const [busy, setBusy] = useState<string | null>(null);
+  const active = templates.filter((t) => isVisible(vis, t.id)).length;
+  async function setMany(ids: string[], on: boolean) {
+    setBusy(ids.length > 1 ? "all" : ids[0]!);
+    const { error } = await supabase.from("template_visibility").upsert(ids.map((template_id) => ({ template_id, is_visible: on, updated_at: new Date().toISOString() })));
+    if (error) toast.error("Couldn't update visibility."); else await qc.invalidateQueries({ queryKey: ["template-visibility"] });
+    setBusy(null);
+  }
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div><h2 className="text-xl font-bold">Template visibility</h2><p className="text-sm text-muted-foreground">Only Active templates appear in the card studios. {active} of {templates.length} active.</p></div>
+        <div className="flex flex-wrap gap-2">
+          <div className="flex rounded-lg border border-border bg-muted p-1">{(["visiting", "greeting"] as const).map((k) => <button key={k} type="button" aria-pressed={kind === k} onClick={() => setKind(k)} className={kind === k ? "rounded-md bg-card px-3 py-1.5 text-xs font-semibold text-primary shadow-card" : "rounded-md px-3 py-1.5 text-xs font-semibold text-muted-foreground"}>{k === "visiting" ? "Visiting cards" : "Greeting cards"}</button>)}</div>
+          <Button variant="outline" size="sm" disabled={busy === "all"} onClick={() => setMany(templates.map((t) => t.id), true)}>Activate all</Button>
+          <Button variant="outline" size="sm" disabled={busy === "all"} onClick={() => setMany(templates.map((t) => t.id), false)}>Deactivate all</Button>
+        </div>
+      </div>
+      <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {templates.map((t) => <VisibilityRow key={t.id} t={t} on={isVisible(vis, t.id)} busy={busy === t.id || busy === "all"} onToggle={(v) => setMany([t.id], v)} />)}
+      </ul>
+    </section>
+  );
+}
+function VisibilityRow({ t, on, busy, onToggle }: { t: DesignTemplate; on: boolean; busy: boolean; onToggle: (v: boolean) => void }) {
+  const [thumb, setThumb] = useState("");
+  useEffect(() => { let live = true; templateThumb(t, 160, t.kind === "visiting" ? 92 : 160).then((u) => { if (live) setThumb(u); }).catch(() => {}); return () => { live = false; }; }, [t]);
+  return (
+    <li className="flex items-center gap-3 rounded-lg border border-border bg-card p-2">
+      <span className="grid h-14 w-20 shrink-0 place-items-center overflow-hidden rounded border border-border bg-muted">{thumb ? <img src={thumb} alt="" className={on ? "size-full object-cover" : "size-full object-cover opacity-40 grayscale"} /> : <Loader2 className="size-4 animate-spin" />}</span>
+      <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{t.name}</p><p className="text-xs text-muted-foreground">{t.category}{t.custom ? " · Custom" : " · Built-in"} · {on ? "Active" : "Inactive"}</p></div>
+      <Switch aria-label={`${t.name} visible`} checked={on} disabled={busy} onCheckedChange={onToggle} />
+    </li>
   );
 }

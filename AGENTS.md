@@ -40,3 +40,4 @@ use the editor.
 - MR downloads live in the private mr-downloads bucket; the media proxy 302-redirects them to signed storage URLs (?download= sets attachment) so large files stream directly, not through the worker; counts increment through a security-definer RPC so visitors never get UPDATE rights.
 
 - Team user accounts are created/updated only through admin-checked server functions using the service client; individual passwords are never stored readable (shown once on create/reset).
+- Every portal page lives under the client-only `_authenticated` gate (only /auth, /reset-password and api routes are public) and self sign-up is disabled, because the portal is team-only with admin-created logins.

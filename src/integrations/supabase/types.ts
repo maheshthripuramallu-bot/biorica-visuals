@@ -241,6 +241,63 @@ export type Database = {
           },
         ]
       }
+      team_members: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          is_active: boolean
+          role: string
+          territory: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          is_active?: boolean
+          role?: string
+          territory?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          role?: string
+          territory?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      team_settings: {
+        Row: {
+          default_password: string
+          id: string
+          target_users: number
+          updated_at: string
+        }
+        Insert: {
+          default_password?: string
+          id?: string
+          target_users?: number
+          updated_at?: string
+        }
+        Update: {
+          default_password?: string
+          id?: string
+          target_users?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -346,6 +403,7 @@ export type Database = {
         Returns: boolean
       }
       increment_download_count: { Args: { _id: string }; Returns: number }
+      team_status: { Args: never; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "user"

@@ -19,6 +19,7 @@ import { CompanyBranding } from "./company-branding";
 import { HEX } from "@/lib/themes";
 
 import { DownloadsManager } from "./downloads-manager";
+import { TeamManager } from "./team-manager";
 import { ProductPackUploader } from "./product-pack-uploader";
 import { PackImage } from "./pack-image";
 import { uploadProductPack } from "@/lib/product-packs";
@@ -96,7 +97,8 @@ export function AdminPanel() {
         catch (e) { await supabase.storage.from("product-packs").remove([uploaded.path]); throw e; }
       }, `Pack image saved for ${current.brand_name}`);
     }}/>
-    <Tabs defaultValue="products" className="mt-8"><TabsList className="h-auto flex-wrap"><TabsTrigger value="products">Products</TabsTrigger><TabsTrigger value="divisions">Divisions</TabsTrigger><TabsTrigger value="import">CSV import</TabsTrigger><TabsTrigger value="slides">Official slides</TabsTrigger><TabsTrigger value="downloads">Manage Downloads</TabsTrigger><TabsTrigger value="branding">Company branding</TabsTrigger></TabsList>
+    <Tabs defaultValue={typeof window !== "undefined" && window.location.hash === "#team" ? "team" : "products"} className="mt-8"><TabsList className="h-auto flex-wrap"><TabsTrigger value="products">Products</TabsTrigger><TabsTrigger value="divisions">Divisions</TabsTrigger><TabsTrigger value="import">CSV import</TabsTrigger><TabsTrigger value="slides">Official slides</TabsTrigger><TabsTrigger value="downloads">Manage Downloads</TabsTrigger><TabsTrigger value="branding">Company branding</TabsTrigger><TabsTrigger value="team">Team Users & Access</TabsTrigger></TabsList>
+      <TabsContent value="team" className="mt-6"><TeamManager/></TabsContent>
       <TabsContent value="downloads" className="mt-6"><DownloadsManager/></TabsContent>
       <TabsContent value="branding" className="mt-6"><CompanyBranding/></TabsContent>
       <TabsContent value="products" className="mt-6"><div className="flex flex-wrap gap-3"><Input aria-label="Search products" placeholder="Search brands or compositions" value={query} onChange={(e) => setQuery(e.target.value)} className="max-w-md"/><Button onClick={() => editProduct()}><Plus/>Add product</Button></div>

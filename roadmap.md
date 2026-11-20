@@ -28,3 +28,6 @@ Verified editor upload, brand-color extraction, quick row replacement, reload an
 - [x] mr-downloads storage + download_files library (public reads, admin writes, counted downloads).
 - [x] Manage Downloads in /manage (any format, categories, division/brand tags, featured, replace, delete).
 - [x] Downloads page in nav with search, category/format chips, sorting, download + preview.
+
+# Team access
+- [x] Team users in /manage (default password, roles, territory, active toggle, reset, bulk add, 10-user projection) + footer access/status.

@@ -26,6 +26,9 @@ import { pickLogo, type LogoChoice } from "@/lib/logo-library";
 import { asLogoSize, cardLogoHeight, type LogoSize } from "@/lib/logo";
 import { ElementStyleControls, TemplateGallery } from "@/components/design-controls";
 import { defaultElementStyles, type DesignTemplate, type ElementStyles } from "@/lib/card-design";
+import { DesignFormatSelect } from "@/components/design-format-select";
+import { formatBatch, type DesignFormat } from "@/lib/design-formats";
+import { formatDesignOutput } from "@/lib/canvas";
 
 const DEFAULT_TAGLINE = "Advancing Science, Enriching Lives";
 type Saved = { id: string; full_name: string; designation: string; details: Json; updated_at: string };
@@ -39,6 +42,7 @@ export function VisitingCardStudio() {
   const [tagline, setTagline] = useState(DEFAULT_TAGLINE);
   const [side, setSide] = useState<"front" | "back">("front");
   const [bleed, setBleed] = useState(false);
+  const [formats, setFormats] = useState<DesignFormat[]>([]);
   const [corners, setCorners] = useState<CornerStyle>("rounded");
   const [thumbs, setThumbs] = useState<Partial<Record<CardTemplate, string>>>({});
   const [preview, setPreview] = useState({ front: "", back: "" });
@@ -95,17 +99,19 @@ export function VisitingCardStudio() {
   const fileBase = slugify(card.fullName || "biorica-card");
   async function downloadSides() {
     setBusy("print");
-    try { for (const s of ["front", "back"] as const) downloadDataUrl(await renderSide(s, card, brand, bleed), `${fileBase}-${s}${bleed ? "-bleed" : ""}.png`); }
+    try { for (const s of ["front", "back"] as const) { const native = await renderSide(s, card, brand, bleed); for (const { format } of formatBatch(formats, 1)) downloadDataUrl(await formatDesignOutput(native, format), `${fileBase}-${s}${format ? `-${slugify(format)}` : ""}${bleed ? "-bleed" : ""}.png`); } }
     finally { setBusy(null); }
   }
-  async function downloadCombined() { setBusy("combined"); try { downloadDataUrl(await renderCombined(card, brand, corners), `${fileBase}-digital-card.png`); } finally { setBusy(null); } }
+  async function downloadCombined() { setBusy("combined"); try { const native = await renderCombined(card, brand, corners); for (const { format } of formatBatch(formats, 1)) downloadDataUrl(await formatDesignOutput(native, format), `${fileBase}-digital-card${format ? `-${slugify(format)}` : ""}.png`); } finally { setBusy(null); } }
   async function share() {
     setBusy("share");
     try {
-      const img = await renderCombined(card, brand, corners); const file = new File([await dataUrlToBlob(img)], `${fileBase}-card.png`, { type: "image/png" });
+      const img = await renderCombined(card, brand, corners);
+      const files = await Promise.all(formatBatch(formats, 1).map(async ({ format }) => new File([await dataUrlToBlob(await formatDesignOutput(img, format))], `${fileBase}-card${format ? `-${slugify(format)}` : ""}.png`, { type: "image/png" })));
       const text = `${card.fullName}${card.designation ? `, ${card.designation}` : ""} — ${brand.companyName}${card.phone ? `\n${card.phone}` : ""}`;
-      if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file], text }); return; }
-      downloadDataUrl(img, file.name); window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+      if (navigator.canShare?.({ files })) { await navigator.share({ files, text }); return; }
+      for (const file of files) { const url = URL.createObjectURL(file); downloadDataUrl(url, file.name); setTimeout(() => URL.revokeObjectURL(url), 1000); }
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
       toast.success("Card downloaded — attach it in WhatsApp.");
     } catch (e) { if (!(e instanceof DOMException && e.name === "AbortError")) toast.error("Couldn't share. Please download the PNG instead."); }
     finally { setBusy(null); }
@@ -164,6 +170,7 @@ export function VisitingCardStudio() {
           <LogoPicker label="Front logo" value={frontChoice} onChange={setFrontChoice} />
           <LogoPicker label="Back logo" value={backChoice} onChange={setBackChoice} />
           <LogoSizeSelect value={logoSize} onChange={setLogoSize} />
+          <DesignFormatSelect value={formats} onChange={setFormats} disabled={!!busy} />
           <div className="space-y-1.5"><Label>Corner style</Label><div className="grid grid-cols-2 rounded-lg border border-border bg-muted p-1">
             {([["sharp", "Sharp Print Corners"], ["rounded", "Modern Rounded Corners"]] as [CornerStyle, string][]).map(([v, l]) => <button key={v} type="button" onClick={() => setCorners(v)} className={cn("min-h-9 rounded-md px-1 text-xs font-semibold", corners === v ? "bg-card text-primary shadow-card" : "text-muted-foreground")}>{l}</button>)}
           </div></div>

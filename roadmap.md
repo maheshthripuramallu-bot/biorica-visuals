@@ -1,4 +1,6 @@
 # Completion roadmap
+- [x] Add output-only multi-format selection to all four existing generation tabs, preserve page grids, and verify exact PNG dimensions and batch rules (84 tests pass).
+- [ ] Verify signed-in multi-format generation and card downloads through the forms — blocked by Lovable Cloud auth/database being unreachable; direct browser PNG sizing passes for all five formats.
 - [x] Complete sign-in, signup, recovery and session-aware navigation (email and access only).
 - [x] Complete protected Admin: divisions, products, CSV and official slides.
 - [x] Verify catalog, search, flipbook, AI generation and library saving with a confirmed temporary account.

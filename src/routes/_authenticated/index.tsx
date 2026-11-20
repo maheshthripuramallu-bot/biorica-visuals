@@ -61,6 +61,9 @@ import { ProductPicker } from "@/components/product-picker";
 import { VisitingCardStudio } from "@/components/visiting-card-studio";
 import { ClinicalBriefEditor, ProductBriefEditor } from "@/components/clinical-brief";
 import { finalBrief } from "@/lib/brief-editor";
+import { DesignFormatSelect } from "@/components/design-format-select";
+import { designFormat, formatBatch, type DesignFormat } from "@/lib/design-formats";
+import { formatDesignOutput } from "@/lib/canvas";
 
 export const Route = createFileRoute("/_authenticated/")({
   validateSearch: (search: Record<string, unknown>): { product?: string | undefined; tab?: "greetings" | "case" | "cards" | undefined } => ({
@@ -100,6 +103,7 @@ function StudioTabs() {
 type PackImg = { id: string; dataUrl: string; name: string };
 type Creative = {
   id: string;
+  format: DesignFormat | undefined;
   variation: number;
   type: CreativeType;
   status: "pending" | "done" | "error";
@@ -131,6 +135,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
   const [styles, setStyles] = useState<CreativeStyle[]>([]);
   const [creativeType, setCreativeType] = useState<CreativeType>(caseMode ? "case_poster" : "slide");
   const [variations, setVariations] = useState(caseMode ? 1 : 2);
+  const [formats, setFormats] = useState<DesignFormat[]>([]);
   const [matchPack, setMatchPack] = useState(true);
   const [showPhone, setShowPhone] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -275,7 +280,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
     const count = clampVariations(variations);
     setPhase("generating");
     const type = creativeType;
-    const batch: Creative[] = Array.from({ length: count }, (_, i) => ({ id: crypto.randomUUID(), variation: i, type, status: "pending" }));
+    const batch: Creative[] = formatBatch(formats, count).map(({ format, variation }) => ({ id: crypto.randomUUID(), variation, format, type, status: "pending" }));
     setCreatives(batch);
     const packs = await catalogPackImages();
     const sendImages = [...images.map((i) => i.dataUrl), ...packs].slice(0, mode === "portfolio" ? 10 : 3);
@@ -302,6 +307,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
             data: {
               images: sendImages,
               creativeType: type,
+              ...(c.format ? { designFormat: c.format } : {}),
               artDirection,
               ...(caseMode ? {} : { focuses }),
               styles,
@@ -313,8 +319,10 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
               analysis: result,
             },
           });
-          const withFooter = await addBioricaFooter(res.image, { company, showPhone, accent, note, print: quality === "print", logoUrl: footerLogo, logoSize });
-          setCreatives((prev) => prev.map((x) => (x.id === c.id ? { ...x, status: "done", image: withFooter, prompt: res.prompt } : x)));
+          const sized = await formatDesignOutput(res.image, c.format);
+          const withFooter = await addBioricaFooter(sized, { company, showPhone, accent, note, print: !c.format && quality === "print", logoUrl: footerLogo, logoSize });
+          const finalImage = await formatDesignOutput(withFooter, c.format);
+          setCreatives((prev) => prev.map((x) => (x.id === c.id ? { ...x, status: "done", image: finalImage, prompt: res.prompt } : x)));
         } catch (e) {
           setCreatives((prev) =>
             prev.map((x) => (x.id === c.id ? { ...x, status: "error", error: friendlyAiError(e, "Generation failed") } : x)),
@@ -354,7 +362,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
       const typeLabel = CREATIVE_TYPES.find((t) => t.value === c.type)?.label ?? "Visual aid";
       const { error } = await supabase.from("visual_aids").insert({
         product_id: pid,
-        title: `${analysis?.brand_name ?? brandHint} — ${typeLabel} v${c.variation + 1}`,
+        title: `${analysis?.brand_name ?? brandHint} — ${typeLabel}${c.format ? ` · ${designFormat(c.format).label}` : ""} v${c.variation + 1}`,
         creative_type: c.type,
         image_url: mediaUrl("visual-aids", path),
         prompt_used: c.prompt ?? null,
@@ -377,7 +385,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
 
   const viewerSlides: Slide[] = creatives
     .filter((c) => c.status === "done" && c.image)
-    .map((c) => ({ key: c.id, label: `${analysis?.brand_name ?? "Creative"} · v${c.variation + 1}`, kind: "image", src: c.image }));
+    .map((c) => ({ key: c.id, label: `${analysis?.brand_name ?? "Creative"}${c.format ? ` · ${c.format}` : ""} · v${c.variation + 1}`, kind: "image", src: c.image }));
   const typeMeta = CREATIVE_TYPES.find((t) => t.value === creativeType) ?? CREATIVE_TYPES[0];
 
   return (
@@ -526,6 +534,7 @@ function Studio({ caseMode = false }: { caseMode?: boolean }) {
               )}
             </div>
 
+            <DesignFormatSelect value={formats} onChange={setFormats} disabled={busy} />
             {!caseMode && <div className="space-y-1.5">
               <Label>Format</Label>
               <div className="grid grid-cols-3 gap-2">
@@ -806,7 +815,7 @@ function CreativeCard({
     <article className="overflow-hidden surface-card animate-fade-up">
       <div className="relative bg-muted" style={{ aspectRatio: `${meta.w} / ${meta.h}` }}>
         {creative.status === "done" && creative.image ? (
-          <img src={creative.image} alt={`${brand} ${meta.label} variation ${creative.variation + 1}`} className="absolute inset-0 size-full object-cover" />
+          <img src={creative.image} alt={`${brand} ${meta.label}${creative.format ? ` ${creative.format}` : ""} variation ${creative.variation + 1}`} className="absolute inset-0 size-full object-contain" />
         ) : creative.status === "pending" ? (
           <div className="absolute inset-0 grid place-items-center animate-shimmer">
             <div className="flex flex-col items-center gap-2 text-sm font-medium text-muted-foreground">
@@ -818,7 +827,7 @@ function CreativeCard({
           <div className="absolute inset-0 grid place-items-center p-6 text-center text-sm text-destructive">{creative.error}</div>
         )}
         <Badge variant="navy" className="absolute left-3 top-3 bg-card/90 backdrop-blur">
-          {meta.ratio} · v{creative.variation + 1}
+          {creative.format ? creative.format.replace("a4-", "A4 ") : meta.ratio} · v{creative.variation + 1}
         </Badge>
       </div>
       <div className="grid grid-cols-3 gap-2 p-3">
@@ -827,7 +836,7 @@ function CreativeCard({
           size="sm"
           className="h-10 px-1 text-xs"
           disabled={creative.status !== "done"}
-          onClick={() => creative.image && downloadDataUrl(creative.image, `${slugify(brand || "biorica")}-${creative.type}-v${creative.variation + 1}.png`)}
+          onClick={() => creative.image && downloadDataUrl(creative.image, `${slugify(brand || "biorica")}-${creative.type}${creative.format ? `-${slugify(creative.format)}` : ""}-v${creative.variation + 1}.png`)}
         >
           <Download /> PNG
         </Button>

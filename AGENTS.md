@@ -46,3 +46,4 @@ use the editor.
 - Product taxonomy lives in products.division_ids/specialties/focus_tags (jsonb arrays) with division_id kept as the first entry; always filter via inDivision/matchesTaxonomy so legacy single-division screens stay consistent.
 - Card design templates are canvas-painted presets in src/lib/card-design.ts plus admin rows in card_templates (images in the card-templates bucket via the media proxy); text is always typeset locally over the template, never by AI.
 - Clinical evidence (patient case, mechanism, prescribed-for, trial data) is only sent to the AI for case_poster; product visual aid prompts explicitly exclude it.
+- Share output format definitions and batch planning in design-formats; contain-resize exports only, never page grids or existing card compositions, so multiple ratios preserve all content.

@@ -1,6 +1,7 @@
 import { canvasLogoHeight, fitLogo, type LogoSize } from "@/lib/logo";
 // Browser-only helpers for composing, compressing and downloading creatives.
 import type { Product } from "./catalog";
+import { containDesign, designFormat, type DesignFormat } from "./design-formats";
 
 const NAVY = "#0F2942";
 const TEAL = "#0D9488";
@@ -85,6 +86,24 @@ export async function addBioricaFooter(src: string, options: FooterOptions & { l
   drawFooter(ctx, canvas.width, canvas.height, { ...options, logo });
   const url = canvas.toDataURL("image/png");
   return options.print ? withPngDpi(url, 300) : url;
+}
+
+/** Output-only resizing leaves the app and the original card composition intact. */
+export async function formatDesignOutput(src: string, format?: DesignFormat): Promise<string> {
+  if (!format) return src;
+  const spec = designFormat(format);
+  const img = await loadImage(src);
+  const canvas = document.createElement("canvas");
+  canvas.width = spec.width; canvas.height = spec.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Your browser couldn't create the image canvas.");
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--card").trim() || NAVY;
+  ctx.fillRect(0, 0, spec.width, spec.height);
+  const box = containDesign(img.naturalWidth, img.naturalHeight, spec.width, spec.height);
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, box.x, box.y, box.width, box.height);
+  const url = canvas.toDataURL("image/png");
+  return spec.print ? withPngDpi(url, 300) : url;
 }
 
 function crc32(bytes: Uint8Array): number {

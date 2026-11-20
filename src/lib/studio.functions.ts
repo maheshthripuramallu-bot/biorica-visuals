@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { CREATIVE_STYLE_VALUES, CREATIVE_TYPES, CREATIVE_TYPE_VALUES, DETAILING_FOCUS_VALUES, MAX_CREATIVE_STYLES } from "./catalog";
 import { BRIEF_LIST_MAX } from "./brief-editor";
+import { DESIGN_FORMAT_VALUES, designFormat } from "./design-formats";
 import { editImage, generateImage, generateResponse, GatewayError } from "@lovable.dev/ai-gateway";
 
 const dataUrl = z.string().regex(/^data:image\/(png|jpeg|jpg|webp);base64,/).max(4_000_000);
@@ -184,6 +185,7 @@ export const generateCreative = createServerFn({ method: "POST" })
       .object({
         images: z.array(dataUrl).max(10),
         creativeType: z.enum(CREATIVE_TYPE_VALUES),
+        designFormat: z.enum(DESIGN_FORMAT_VALUES).optional(),
         artDirection: z.enum(["mnc", "3d", "swiss", "indian"]).default("mnc"),
         focus: z.enum(DETAILING_FOCUS_VALUES).default("auto"),
         focuses: z.array(z.enum(DETAILING_FOCUS_VALUES)).max(7).default([]),
@@ -218,14 +220,18 @@ export const generateCreative = createServerFn({ method: "POST" })
     // Clinical data (patient cases, mechanism evidence, trial results) is routed only to the Clinical Case Poster.
     const clinical = data.creativeType === "case_poster";
     const portfolio = data.productNames.length > 1;
-    const kind = portfolio && data.creativeType !== "portfolio" ? `${KINDS[data.creativeType]}, adapted as a multi-product specialty basket featuring all ${data.productNames.length} packs together` : KINDS[data.creativeType];
+    const originalKind = KINDS[data.creativeType] ?? "doctor detailing visual aid";
+    const outputFormat = data.designFormat ? designFormat(data.designFormat) : undefined;
+    const baseKind = outputFormat ? originalKind.replace(/16:9|9:16|1:1|2:3|4:5|A5|vertical|portrait|landscape|square/gi, "").trim() : originalKind;
+    const kind = portfolio && data.creativeType !== "portfolio" ? `${baseKind}, adapted as a multi-product specialty basket featuring all ${data.productNames.length} packs together` : baseKind;
     const prompt = [
       `Design a premium, clinical ${kind} for the pharmaceutical brand "${a.brand_name}" by Biorica Sciences, aimed at a ${data.specialty}.`,
+      outputFormat ? `OUTPUT DIMENSIONS: ${outputFormat.label}. Compose the complete artwork for this aspect ratio, overriding any default orientation of the creative type. Keep all text, packs and branding within safe margins.` : "",
       data.images.length
         ? "Use the supplied product pack photo as the hero product. Reproduce the pack faithfully — keep its shape, colours, logo and printed text unchanged. Do not invent a different pack."
         : `Show an elegant, generic pharmaceutical pack labelled "${a.brand_name}".`,
       a.headline.includes("|")
-        ? `Headline on two lines — line 1: "${a.headline.split("|")[0]!.trim()}", line 2: "${a.headline.split("|").slice(1).join(" ").trim()}". Never print a "|" character.`
+        ? `Headline on two lines — line 1: "${a.headline.split("|")[0]?.trim() ?? ""}", line 2: "${a.headline.split("|").slice(1).join(" ").trim()}". Never print a "|" character.`
         : `Headline text: "${a.headline}"`,
       `Sub-line text: "${a.tagline}"`,
       `Composition text (small, clearly legible): "${a.composition}"`,
@@ -264,7 +270,7 @@ export const generateCreative = createServerFn({ method: "POST" })
       "Keep the bottom 9% of the canvas as plain empty white space — no text or graphics there (a footer is added later).",
     ].filter(Boolean).join("\n");
     try {
-      const size = SIZES[data.creativeType];
+      const size = outputFormat?.aiSize ?? SIZES[data.creativeType];
       const res = data.images.length
         ? await editImage({
             model: "openai/gpt-image-2.5-sunburst",

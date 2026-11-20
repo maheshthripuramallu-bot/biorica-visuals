@@ -25,9 +25,12 @@ import { blobToDataUrl, compressImage, dataUrlToBlob, downloadDataUrl, slugify }
 import type { Json } from "@/integrations/supabase/types";
 import { ElementStyleControls, TemplateGallery } from "@/components/design-controls";
 import { defaultElementStyles, type DesignTemplate, type ElementStyles } from "@/lib/card-design";
+import { DesignFormatSelect } from "@/components/design-format-select";
+import { designFormat, formatBatch, type DesignFormat } from "@/lib/design-formats";
+import { formatDesignOutput } from "@/lib/canvas";
 
 export const companyLogoQuery = { queryKey: ["company-logo"], queryFn: () => getCompanyLogo(), staleTime: 60_000 };
-type Card = { id: string; greeting: Greeting; image: string; saved: boolean };
+type Card = { id: string; greeting: Greeting; image: string; saved: boolean; format: DesignFormat | undefined };
 const selectClass = "h-11 w-full rounded-md border border-input bg-card px-3 text-sm";
 
 export function GreetingStudio() {
@@ -42,6 +45,7 @@ export function GreetingStudio() {
   const [g, setG] = useState<Greeting>(initialGreeting);
   const [occasion, setOccasion] = useState<string>("Birthday");
   const [count, setCount] = useState(2); const [preview, setPreview] = useState("");
+  const [formats, setFormats] = useState<DesignFormat[]>([]);
   const [cards, setCards] = useState<Card[]>([]); const [busy, setBusy] = useState(false);
   const [writing, setWriting] = useState(false); const [saving, setSaving] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState(""); const [progress, setProgress] = useState("");
@@ -74,8 +78,11 @@ export function GreetingStudio() {
       for (let i = 0; i < total; i++) {
         setProgress(`Creating variation ${i + 1} of ${total}…`);
         const background = designArg ? "" : await createBackground({ data: { occasion: current.occasion, style: current.style, format: current.format, variation: i } });
-        const image = await renderGreeting(current, logo, background, i, company, "", logoSize, designArg);
-        setCards((prev) => [...prev, { id: crypto.randomUUID(), greeting: current, image, saved: false }]);
+        const nativeImage = await renderGreeting(current, logo, background, i, company, "", logoSize, designArg);
+        for (const { format } of formatBatch(formats, 1)) {
+          const image = await formatDesignOutput(nativeImage, format);
+          setCards((prev) => [...prev, { id: crypto.randomUUID(), greeting: current, image, format, saved: false }]);
+        }
       }
       output.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (error) { toast.error(error instanceof Error ? error.message : "Couldn't create greetings."); }
@@ -87,7 +94,7 @@ export function GreetingStudio() {
     try {
       const { error: uploadError } = await supabase.storage.from("greeting-cards").upload(path, await dataUrlToBlob(card.image), { contentType: "image/png" });
       if (uploadError) throw uploadError; uploaded = true;
-      const { error } = await supabase.from("greeting_cards").insert({ user_id: auth.user.id, doctor_name: card.greeting.doctorName, occasion: card.greeting.occasion, image_path: path, template: { ...card.greeting } });
+      const { error } = await supabase.from("greeting_cards").insert({ user_id: auth.user.id, doctor_name: card.greeting.doctorName, occasion: card.greeting.occasion, image_path: path, template: { ...card.greeting, outputFormat: card.format ?? null } });
       if (error) throw error;
       setCards((prev) => prev.map((c) => c.id === card.id ? { ...c, saved: true } : c));
       await qc.invalidateQueries({ queryKey: historyKey }); toast.success("Saved to greeting history");
@@ -150,6 +157,7 @@ export function GreetingStudio() {
           {design && <ElementStyleControls kind="greeting" idPrefix="greet-text" value={textStyle} onChange={setTextStyle} />}
         </fieldset>
         <fieldset className="space-y-3 border-t border-border pt-5"><legend className="text-lg font-bold">Design & format</legend>
+          <DesignFormatSelect value={formats} onChange={setFormats} disabled={busy} />
           <Label htmlFor="greeting-style">Design style</Label><select id="greeting-style" className={selectClass} value={g.style} onChange={(e) => { const style = GREETING_STYLES.find((s) => s === e.target.value); if (style) update("style", style); }}>{GREETING_STYLES.map((s) => <option key={s}>{s}</option>)}</select>
           <Label>Card format</Label><div className="grid grid-cols-2 gap-2">{(["square", "story"] as const).map((f) => <Button type="button" className="h-auto min-h-11 whitespace-normal py-2" key={f} variant={g.format === f ? "teal" : "outline"} aria-pressed={g.format === f} onClick={() => update("format", f)}>{f === "square" ? "WhatsApp Square (1:1)" : "Status / Story (9:16)"}</Button>)}</div>
           <Label>Number of variations</Label><div className="grid grid-cols-3 gap-2">{[1, 2, 3].map((n) => <Button key={n} type="button" variant={count === n ? "teal" : "outline"} aria-pressed={count === n} onClick={() => setCount(n)}>{n}</Button>)}</div>
@@ -160,10 +168,10 @@ export function GreetingStudio() {
       <section className="min-w-0 lg:sticky lg:top-24"><div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-bold">Live preview</h2><span className="text-xs text-muted-foreground">{g.format === "square" ? "1600 × 1600 PNG" : "1080 × 1920 PNG"}</span></div>
         <div className={g.format === "square" ? "mx-auto aspect-square w-full max-w-xl overflow-hidden rounded-lg border border-border bg-muted" : "mx-auto aspect-[9/16] w-full max-w-sm overflow-hidden rounded-lg border border-border bg-muted"}>{preview && <img src={preview} alt="Live doctor greeting card preview" className="size-full object-contain"/>}</div>
         {previewError && <p role="alert" className="mt-3 text-sm text-destructive">{previewError}</p>}
-        <Button type="button" variant="outline" className="mt-4 w-full" disabled={!preview || Boolean(previewError)} onClick={() => downloadDataUrl(preview, `${slugify(g.doctorName || "doctor")}-greeting.png`)}><Download/>Download Preview PNG</Button>
+        <Button type="button" variant="outline" className="mt-4 w-full" disabled={!preview || Boolean(previewError)} onClick={async () => { for (const { format } of formatBatch(formats, 1)) downloadDataUrl(await formatDesignOutput(preview, format), `${slugify(g.doctorName || "doctor")}-greeting${format ? `-${slugify(format)}` : ""}.png`); }}><Download/>Download Preview PNG</Button>
       </section>
     </div>
-    <section ref={output} className="mt-12 scroll-mt-24 border-t border-border pt-7">{(cards.length > 0 || busy) && <><h2 className="mb-5 text-xl font-bold">Greeting variations</h2><div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{cards.map((card, i) => <article key={card.id} className="min-w-0 rounded-lg border border-border bg-card p-3"><img src={card.image} alt={`${card.greeting.doctorName} greeting variation ${i + 1}`} className="mx-auto max-h-[520px] w-full object-contain"/><p className="mt-3 font-semibold">Variation {i + 1} · {card.greeting.doctorName}</p><div className="mt-3 grid gap-2"><Button variant="outline" onClick={() => downloadDataUrl(card.image, `${slugify(card.greeting.doctorName)}-v${i + 1}.png`)}><Download/>Download High-Res PNG</Button><Button variant="teal" onClick={() => share(card.image, card.greeting)}><Share2/>Share to WhatsApp</Button><Button variant="outline" disabled={card.saved || saving === card.id} onClick={() => save(card)}>{saving === card.id ? <Loader2 className="animate-spin"/> : <Save/>}{card.saved ? "Saved to history" : "Save to Greeting History"}</Button></div></article>)}</div></>}
+    <section ref={output} className="mt-12 scroll-mt-24 border-t border-border pt-7">{(cards.length > 0 || busy) && <><h2 className="mb-5 text-xl font-bold">Greeting variations</h2><div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{cards.map((card, i) => <article key={card.id} className="min-w-0 rounded-lg border border-border bg-card p-3"><img src={card.image} alt={`${card.greeting.doctorName} greeting variation ${i + 1}`} className="mx-auto max-h-[520px] w-full object-contain"/><p className="mt-3 font-semibold">Variation {i + 1} · {card.greeting.doctorName}{card.format ? ` · ${designFormat(card.format).label}` : ""}</p><div className="mt-3 grid gap-2"><Button variant="outline" onClick={() => downloadDataUrl(card.image, `${slugify(card.greeting.doctorName)}${card.format ? `-${slugify(card.format)}` : ""}-v${i + 1}.png`)}><Download/>Download High-Res PNG</Button><Button variant="teal" onClick={() => share(card.image, card.greeting)}><Share2/>Share to WhatsApp</Button><Button variant="outline" disabled={card.saved || saving === card.id} onClick={() => save(card)}>{saving === card.id ? <Loader2 className="animate-spin"/> : <Save/>}{card.saved ? "Saved to history" : "Save to Greeting History"}</Button></div></article>)}</div></>}
       <h2 className="mb-5 mt-8 flex items-center gap-2 text-xl font-bold"><History className="size-5"/>Greeting history</h2>
       {!auth?.user ? signIn : history.isPending ? <Loader2 className="animate-spin"/> : history.isError ? <div><p role="alert">Couldn't load greeting history.</p><Button variant="outline" onClick={() => history.refetch()}>Try again</Button></div> : !history.data?.length ? <p className="text-sm text-muted-foreground">No saved greetings yet.</p> : <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{history.data.map((row) => <article className="min-w-0 rounded-lg border border-border bg-card p-3" key={row.id}>{row.url && <img src={row.url} alt={`${row.doctor_name} saved greeting`} className="h-64 w-full object-contain"/>}<p className="mt-3 break-words font-bold">{row.doctor_name}</p><p className="text-sm text-muted-foreground">{row.occasion} · {new Date(row.created_at).toLocaleDateString()}</p><div className="mt-3 flex gap-2"><Button variant="outline" size="icon" aria-label={`Download greeting for ${row.doctor_name}`} title="Download PNG" disabled={!row.url} onClick={async () => { try { downloadDataUrl(await blobToDataUrl(await (await fetch(row.url)).blob()), `${slugify(row.doctor_name)}-greeting.png`); } catch { toast.error("Couldn't download the card."); } }}><Download/></Button><Button variant="outline" onClick={() => reuse(row.template)}><RotateCcw/>Reuse</Button><Button variant="ghost" size="icon" aria-label={`Delete greeting for ${row.doctor_name}`} title="Delete greeting" disabled={saving === row.id} onClick={() => remove(row.id, row.image_path)}><Trash2/></Button></div></article>)}</div>}
     </section>

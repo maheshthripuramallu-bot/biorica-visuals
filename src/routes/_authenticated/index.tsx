@@ -62,6 +62,7 @@ import { VisitingCardStudio } from "@/components/visiting-card-studio";
 import { ClinicalBriefEditor, ProductBriefEditor } from "@/components/clinical-brief";
 import { finalBrief } from "@/lib/brief-editor";
 import { DesignFormatSelect } from "@/components/design-format-select";
+import { ManualTemplateStudio } from "@/components/manual-template-studio";
 import { designFormat, formatBatch, type DesignFormat } from "@/lib/design-formats";
 import { formatDesignOutput } from "@/lib/canvas";
 
@@ -96,7 +97,7 @@ function StudioTabs() {
   const { tab, product } = Route.useSearch(); const navigate = useNavigate();
   return <Tabs value={tab ?? "products"} onValueChange={(value) => navigate({ to: "/", search: { product, tab: value === "greetings" || value === "case" || value === "cards" ? value : undefined }, replace: true })}>
     <div className="border-b border-border bg-card"><div className="mx-auto max-w-7xl px-4 py-4 sm:px-6"><TabsList className="grid h-auto w-full max-w-3xl grid-cols-2 sm:grid-cols-4"><TabsTrigger className="min-h-11 whitespace-normal text-center" value="products">Product Visual Aids</TabsTrigger><TabsTrigger className="min-h-11 whitespace-normal text-center" value="case">Clinical Case Poster</TabsTrigger><TabsTrigger className="min-h-11 whitespace-normal text-center" value="greetings">Doctor Greeting Cards</TabsTrigger><TabsTrigger className="min-h-11 whitespace-normal text-center" value="cards">Visiting Cards</TabsTrigger></TabsList></div></div>
-    <TabsContent value="products" className="mt-0"><Studio/></TabsContent><TabsContent value="case" className="mt-0"><Studio caseMode/></TabsContent><TabsContent value="greetings" className="mt-0"><GreetingStudio/></TabsContent><TabsContent value="cards" className="mt-0"><VisitingCardStudio/></TabsContent>
+    <TabsContent value="products" className="mt-0"><ModeSwitch/></TabsContent><TabsContent value="case" className="mt-0"><ModeSwitch caseMode/></TabsContent><TabsContent value="greetings" className="mt-0"><GreetingStudio/></TabsContent><TabsContent value="cards" className="mt-0"><VisitingCardStudio/></TabsContent>
   </Tabs>;
 }
 
@@ -113,6 +114,18 @@ type Creative = {
   savedProductId?: string | null;
   saving?: boolean;
 };
+
+function ModeSwitch({ caseMode = false }: { caseMode?: boolean }) {
+  const [manual, setManual] = useState(false);
+  const opt = (on: boolean) => `min-h-10 rounded-md px-4 text-sm font-medium transition ${on ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"}`;
+  return <>
+    <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6"><div role="radiogroup" aria-label="Studio mode" className="inline-flex rounded-lg border border-border bg-card p-1">
+      <button type="button" role="radio" aria-checked={!manual} className={opt(!manual)} onClick={() => setManual(false)}>AI Auto-Generate</button>
+      <button type="button" role="radio" aria-checked={manual} className={opt(manual)} onClick={() => setManual(true)}>Manual Template Mode</button>
+    </div></div>
+    {manual ? <ManualTemplateStudio caseMode={caseMode} /> : <Studio caseMode={caseMode} />}
+  </>;
+}
 
 function Studio({ caseMode = false }: { caseMode?: boolean }) {
   const { product: productParam } = Route.useSearch();

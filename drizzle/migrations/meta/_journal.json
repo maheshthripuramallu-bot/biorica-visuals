@@ -113,6 +113,20 @@
       "when": 1795196614441,
       "tag": "0015_template_visibility",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1795345428332,
+      "tag": "0016_manual_template_library",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795345569230,
+      "tag": "0017_manual_template_visibility_sync",
+      "breakpoints": true
     }
   ]
 }

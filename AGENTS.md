@@ -47,3 +47,4 @@ use the editor.
 - Card design templates are canvas-painted presets in src/lib/card-design.ts plus admin rows in card_templates (images in the card-templates bucket via the media proxy); text is always typeset locally over the template, never by AI.
 - Clinical evidence (patient case, mechanism, prescribed-for, trial data) is only sent to the AI for case_poster; product visual aid prompts explicitly exclude it.
 - Share output format definitions and batch planning in design-formats; contain-resize exports only, never page grids or existing card compositions, so multiple ratios preserve all content.
+- Manual visual aids use the browser canvas engine in manual-design; admin overrides and deletion tombstones live in manual_templates so inactive built-in presets cannot resurface. Preview/source files use private signed storage links; proprietary formats without usable composites require a separate preview and preserve original bytes.

@@ -1,4 +1,7 @@
 # Completion roadmap
+- [x] Expand manual Studio: 24 pharma templates, full content lists, photos, independent typography/position controls and local PNG/PDF exports.
+- [x] Add admin Template Manager: search, edit, visibility, deletion, source preservation and preview/placement editing.
+- [x] Verify manual exports and admin persistence with signed-in desktop/mobile checks and regression tests (94 passing). All five PNG sizes and A4 PDF page dimensions verified; no AI calls. Custom source bytes, saved coordinates, renamed templates, visibility and deletion verified; test data removed. PSD composites and PDF-compatible AI previews tested; CDR/non-previewable sources require a companion preview. Login and admin library sync still require Cloud; manual editing/export run locally.
 - [x] Repair the stale Lovable Cloud binding and degraded connection behind “Project not specified”; verify signed-in Divisions, division detail, Search, Flipbook, Downloads and Studio with no runtime errors.
 - [x] Add output-only multi-format selection to all four existing generation tabs, preserve page grids, and verify exact PNG dimensions and batch rules (84 tests pass).
 - [x] Verify signed-in multi-format choices in all four tabs and greeting/visiting-card batch downloads with exact PNG sizes; check mobile overflow. Real AI generation is covered by the original-photo retry pending below, not rerun during Cloud recovery.

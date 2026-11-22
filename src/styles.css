@@ -75,6 +75,16 @@
 }
 
 :root {
+  --manual-teal: oklch(0.6 0.104 184.7);
+  --manual-teal-soft: oklch(0.96 0.025 184.7);
+  --manual-navy: oklch(0.4 0.07 250);
+  --manual-navy-soft: oklch(0.96 0.014 250);
+  --manual-gold: oklch(0.65 0.12 85);
+  --manual-gold-soft: oklch(0.96 0.04 85);
+  --manual-emerald: oklch(0.54 0.13 160);
+  --manual-emerald-soft: oklch(0.96 0.03 160);
+  --manual-blue: oklch(0.56 0.14 240);
+  --manual-blue-soft: oklch(0.96 0.025 240);
   --greeting-royal-paper: #0f2942;
   --greeting-royal-ink: #ffffff;
   --greeting-royal-accent: #e4c980;

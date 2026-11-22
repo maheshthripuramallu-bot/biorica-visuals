@@ -1,0 +1,1 @@
+ALTER POLICY "Team reads active manual templates" ON public.manual_templates USING (true);

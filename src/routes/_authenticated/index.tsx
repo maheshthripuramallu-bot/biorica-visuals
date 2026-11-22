@@ -120,8 +120,8 @@ function ModeSwitch({ caseMode = false }: { caseMode?: boolean }) {
   const opt = (on: boolean) => `min-h-10 rounded-md px-4 text-sm font-medium transition ${on ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"}`;
   return <>
     <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6"><div role="radiogroup" aria-label="Studio mode" className="inline-flex rounded-lg border border-border bg-card p-1">
-      <button type="button" role="radio" aria-checked={!manual} className={opt(!manual)} onClick={() => setManual(false)}>AI Auto-Generate</button>
-      <button type="button" role="radio" aria-checked={manual} className={opt(manual)} onClick={() => setManual(true)}>Manual Template Mode</button>
+      <Button type="button" variant="ghost" role="radio" aria-checked={!manual} className={opt(!manual)} onClick={() => setManual(false)}>AI Auto-Generate</Button>
+      <Button type="button" variant="ghost" role="radio" aria-checked={manual} className={opt(manual)} onClick={() => setManual(true)}>Manual Template Mode</Button>
     </div></div>
     {manual ? <ManualTemplateStudio caseMode={caseMode} /> : <Studio caseMode={caseMode} />}
   </>;

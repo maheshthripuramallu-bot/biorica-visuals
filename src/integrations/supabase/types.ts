@@ -233,6 +233,51 @@ export type Database = {
         }
         Relationships: []
       }
+      manual_templates: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_deleted: boolean
+          layout: string
+          metadata: Json
+          name: string
+          palette: string
+          preview_path: string | null
+          source_name: string | null
+          source_path: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          id: string
+          is_active?: boolean
+          is_deleted?: boolean
+          layout?: string
+          metadata?: Json
+          name: string
+          palette?: string
+          preview_path?: string | null
+          source_name?: string | null
+          source_path?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          layout?: string
+          metadata?: Json
+          name?: string
+          palette?: string
+          preview_path?: string | null
+          source_name?: string | null
+          source_path?: string | null
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           brand_color: string | null

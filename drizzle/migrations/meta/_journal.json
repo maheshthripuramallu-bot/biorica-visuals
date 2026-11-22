@@ -127,6 +127,13 @@
       "when": 1795345569230,
       "tag": "0017_manual_template_visibility_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1795347473602,
+      "tag": "0018_card_template_sources",
+      "breakpoints": true
     }
   ]
 }

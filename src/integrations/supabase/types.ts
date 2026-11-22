@@ -23,6 +23,8 @@ export type Database = {
           image_url: string
           kind: string
           name: string
+          source_name: string | null
+          source_path: string | null
           text_align: string
           text_color: string
           text_x: number
@@ -36,6 +38,8 @@ export type Database = {
           image_url: string
           kind: string
           name: string
+          source_name?: string | null
+          source_path?: string | null
           text_align?: string
           text_color?: string
           text_x?: number
@@ -49,6 +53,8 @@ export type Database = {
           image_url?: string
           kind?: string
           name?: string
+          source_name?: string | null
+          source_path?: string | null
           text_align?: string
           text_color?: string
           text_x?: number

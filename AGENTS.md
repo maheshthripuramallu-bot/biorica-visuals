@@ -48,3 +48,4 @@ use the editor.
 - Clinical evidence (patient case, mechanism, prescribed-for, trial data) is only sent to the AI for case_poster; product visual aid prompts explicitly exclude it.
 - Share output format definitions and batch planning in design-formats; contain-resize exports only, never page grids or existing card compositions, so multiple ratios preserve all content.
 - Manual visual aids use the browser canvas engine in manual-design; admin overrides and deletion tombstones live in manual_templates so inactive built-in presets cannot resurface. Preview/source files use private signed storage links; proprietary formats without usable composites require a separate preview and preserve original bytes.
+- Scope the Template Manager dark palette to manager-dashboard; review original companion previews separately from the editable text overlay, and keep clinical photo choices in the browser-safe clinical-photos module so preview and export use identical imagery.

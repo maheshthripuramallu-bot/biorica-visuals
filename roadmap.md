@@ -1,4 +1,7 @@
 # Completion roadmap
+- [x] Add companion source previews and full-size review in Template Manager.
+- [x] Apply the uploaded dashboard styling rules, group exactly 20 core layouts, and add six diverse clinical scenarios plus lifestyle photo upload. No reference image was attached; followed the written styling specification.
+- [x] Verify CDR source preservation, uploaded/replaced preview persistence, full-size review, A4 manual export, and desktop/mobile layouts; 95 tests pass, no runtime errors. Companion previews must be supplied for CDR/non-renderable sources; no actual source artwork was provided by the user.
 - [x] Expand manual Studio: 24 pharma templates, full content lists, photos, independent typography/position controls and local PNG/PDF exports.
 - [x] Add admin Template Manager: search, edit, visibility, deletion, source preservation and preview/placement editing.
 - [x] Verify manual exports and admin persistence with signed-in desktop/mobile checks and regression tests (94 passing). All five PNG sizes and A4 PDF page dimensions verified; no AI calls. Custom source bytes, saved coordinates, renamed templates, visibility and deletion verified; test data removed. PSD composites and PDF-compatible AI previews tested; CDR/non-previewable sources require a companion preview. Login and admin library sync still require Cloud; manual editing/export run locally.

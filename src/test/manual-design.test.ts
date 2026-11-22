@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { emptyManualContent, editManualList, MANUAL_TEMPLATES, mergeManualTemplates, defaultManualStyles, normalizeManualStyles, MANUAL_LISTS } from '../lib/manual-design';
 import { sanitizeSvg } from '../lib/manual-upload';
+import { CLINICAL_PHOTOS } from '../lib/clinical-photos';
 describe('Manual template requirements', () => {
- it('includes at least 20 distinct pharma templates', () => { expect(MANUAL_TEMPLATES.length).toBeGreaterThanOrEqual(20); expect(new Set(MANUAL_TEMPLATES.map(t => t.id)).size).toBe(MANUAL_TEMPLATES.length); });
+ it('includes exactly 20 distinct core pharma templates', () => { expect(MANUAL_TEMPLATES).toHaveLength(20); expect(new Set(MANUAL_TEMPLATES.map(t => t.id)).size).toBe(20); });
+ it('covers all four doctor/patient gender combinations and geriatric/pediatric care', () => { expect(CLINICAL_PHOTOS.map(p=>p.label)).toEqual(['Male Doctor / Female Patient','Female Doctor / Male Patient','Male Doctor / Male Patient','Female Doctor / Female Patient','Geriatric Care','Pediatric Care']); expect(new Set(CLINICAL_PHOTOS.map(p=>p.url)).size).toBe(6); });
  it.each(MANUAL_LISTS)('%s permits unlimited addition and removal without losing text', key => { let c = emptyManualContent(); for (let i=0;i<120;i++) c=editManualList(c,key,'add'); expect(c.lists[key]).toHaveLength(121); c=editManualList(c,key,'edit',120,'Last edited item'); c=editManualList(c,key,'remove',0); expect(c.lists[key]).toHaveLength(120); expect(c.lists[key][119]).toBe('Last edited item'); });
  it('inactive and removed built-ins stay hidden rather than falling back to the preset', () => { const t=MANUAL_TEMPLATES[0]; if (!t) throw new Error('Missing template'); expect(mergeManualTemplates([{...t,active:false}]).some(v => v.id===t.id)).toBe(false); expect(mergeManualTemplates([{...t,deleted:true}],false).some(v => v.id===t.id)).toBe(false); });
  it('admin styling overrides reach the template library', () => { const t=MANUAL_TEMPLATES[0]; if (!t) throw new Error('Missing template'); const styles=defaultManualStyles(); styles.Header.x=22; styles.Footer.font='Playfair Display'; expect(mergeManualTemplates([{...t,styles}])[0]?.styles.Header.x).toBe(22); expect(mergeManualTemplates([{...t,styles}])[0]?.styles.Footer.font).toBe('Playfair Display'); });

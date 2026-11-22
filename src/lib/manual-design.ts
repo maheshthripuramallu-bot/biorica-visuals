@@ -10,7 +10,7 @@ export type ManualStyle = { font: string; size: number; weight: number; spacing:
 export type ManualStyles = Record<ManualElement, ManualStyle>;
 export type ManualContent = { header: string; subheadline: string; composition: string; dosageForm: string; footer: string; lists: Record<ListKey, string[]>; divisions: string[]; specialties: string[] };
 export type ManualTemplate = { id: string; name: string; category: string; layout: string; palette: string; styles: ManualStyles; preview?: string; sourcePath?: string; sourceName?: string; active: boolean; deleted: boolean; custom: boolean };
-export const MANUAL_LAYOUTS = ['band', 'split', 'editorial', 'columns', 'badge', 'consultation'] as const;
+export const MANUAL_LAYOUTS = ['band', 'split', 'editorial', 'columns', 'badge', 'consultation', 'nodes', 'photo'] as const;
 export const MANUAL_PALETTES = ['teal', 'navy', 'gold', 'emerald', 'blue'] as const;
 export function emptyManualContent(): ManualContent { return { header: '', subheadline: '', composition: '', dosageForm: '', footer: 'For the use of Registered Medical Practitioners only', lists: Object.fromEntries(MANUAL_LISTS.map(k => [k, ['']])) as Record<ListKey, string[]>, divisions: [], specialties: [] }; }
 export function editManualList(c: ManualContent, key: ListKey, action: 'add' | 'remove' | 'edit', index = 0, value = ''): ManualContent {
@@ -21,7 +21,7 @@ export function defaultManualStyles(layout = 'band'): ManualStyles {
  const base: ManualStyle = { font: 'Open Sans', size: 25, weight: 400, spacing: 0, color: '', align: 'left', x: split ? 39 : 6, y: 36 };
  return { Header: { ...base, font: 'Montserrat', size: 58, weight: 700, x: 6, y: 6 }, 'Sub-headline': { ...base, size: 25, x: 6, y: 17 }, Composition: { ...base, size: 24, x: 6, y: 24 }, 'Block Text': { ...base }, Footer: { ...base, size: 17, x: 6, y: 94 } };
 }
-const names = ['Clinical Teal', 'Navy Detailer', 'Gold Standard', 'Emerald Care', 'Medical Blueprint', 'Precision Science', 'Therapy Spotlight', 'Patient First', 'Molecular Focus', 'Clinical Evidence', 'Premium Portfolio', 'Daily Wellness', 'Brand Recall', 'Specialty Care', 'Practice Companion', 'Modern Prescription', 'Care Pathway', 'Clinical Essentials', 'Trusted Formulation', 'Consultation Story', 'Treatment Overview', 'Science in Focus', 'Balanced Care', 'Signature Detailer'];
+const names = ['Clinical Teal', 'Navy Detailer', 'Gold Standard', 'Emerald Care', 'Medical Blueprint', 'Precision Science', 'Therapy Spotlight', 'Patient First', 'Molecular Focus', 'Clinical Evidence', 'Premium Portfolio', 'Daily Wellness', 'Brand Recall', 'Specialty Care', 'Practice Companion', 'Modern Prescription', 'Care Pathway', 'Clinical Essentials', 'Trusted Formulation', 'Consultation Story'];
 export const MANUAL_TEMPLATES: ManualTemplate[] = names.map((name, i) => { const layout = MANUAL_LAYOUTS[i % MANUAL_LAYOUTS.length] ?? 'band'; return { id: `manual-${i + 1}`, name, category: ['Scientific', 'Corporate', 'Premium', 'Wellness'][i % 4] ?? 'Scientific', layout, palette: MANUAL_PALETTES[i % 5] ?? 'teal', styles: defaultManualStyles(layout), active: true, deleted: false, custom: false }; });
 export function mergeManualTemplates(rows: ManualTemplate[], activeOnly = true): ManualTemplate[] {
  const overrides = new Map(rows.map(r => [r.id, r]));
@@ -54,8 +54,10 @@ export function drawManual(canvas: HTMLCanvasElement, tpl: ManualTemplate, fmt: 
  ctx.fillStyle = t.accent; ctx.fillRect(0, H * .985, W, H * .015);
  if (tpl.layout === 'badge') { ctx.fillStyle = t.tint; ctx.beginPath(); ctx.arc(W * .86, H * .15, Math.min(W * .07, H * .08), 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = t.accent; ctx.fillRect(W * .84, H * .11, W * .035, H * .08); ctx.fillRect(W * .82, H * .135, W * .075, H * .025); }
  if (assets.background) contain(ctx, assets.background, 0, 0, W, H);
- const photo = assets.product ?? (tpl.layout === 'consultation' ? assets.lifestyle : undefined);
- if (photo) contain(ctx, photo, W * .68, H * .35, W * .26, H * .28);
+ if (tpl.layout === 'photo' && assets.lifestyle && !assets.background) { const img = assets.lifestyle; const k = Math.max(W / img.width,H / img.height); ctx.drawImage(img,(W-img.width*k)/2,(H-img.height*k)/2,img.width*k,img.height*k); ctx.fillStyle = t.paper; ctx.globalAlpha = .91; ctx.fillRect(0,H*.3,W,H*.7); ctx.globalAlpha = 1; ctx.fillStyle = grad; ctx.fillRect(0,0,W,H*.3); }
+ const photo = assets.product ?? assets.lifestyle;
+ if (assets.lifestyle && tpl.layout !== 'photo') contain(ctx, assets.lifestyle, W * .68, H * .35, W * .26, H * .3);
+ if (assets.product) contain(ctx, assets.product, W * .68, assets.lifestyle && tpl.layout !== 'photo' ? H * .67 : H * .35, W * .26, H * .22);
  ctx.textBaseline = 'top'; let overflow = false;
  const text = (value: string, el: ManualElement, maxW: number, maxH: number, x?: number, y?: number, factor = 1) => {
  const s = styles[el]; const px = x ?? W * s.x / 100, py = y ?? H * s.y / 100; let size = s.size * u * factor;
@@ -76,7 +78,7 @@ export function drawManual(canvas: HTMLCanvasElement, tpl: ManualTemplate, fmt: 
  const columns = wide && tpl.layout !== 'split' ? (tpl.layout === 'columns' ? 3 : 2) : 1;
  const areaW = (photo ? W * .61 : W * .94) - bx; const areaH = H * .9 - by;
  const rows = Math.max(1, Math.ceil(blocks.length / columns)); const bw = Math.max(W * .1, areaW / columns), bh = Math.max(H * .05, areaH / rows);
- blocks.forEach((b, i) => { const x = bx + i % columns * bw, y = by + Math.floor(i / columns) * bh; ctx.fillStyle = t.tint; ctx.beginPath(); ctx.roundRect(x, y, bw - W * .015, bh - H * .012, 6 * u); ctx.fill(); ctx.fillStyle = t.accent; ctx.fillRect(x, y, 3 * u, bh - H * .012); text(b.key, 'Block Text', bw - W * .04, bh * .18, x + W * .012, y + H * .012, 1.1); text(b.list.map(v => `• ${v}`).join('\n'), 'Block Text', bw - W * .04, bh * .65, x + W * .012, y + bh * .25); });
+ blocks.forEach((b, i) => { const x = bx + i % columns * bw, y = by + Math.floor(i / columns) * bh; ctx.fillStyle = t.tint; ctx.beginPath(); ctx.roundRect(x, y, bw - W * .015, bh - H * .012, tpl.layout === 'nodes' ? Math.min(bw,bh)*.24 : 6 * u); ctx.fill(); ctx.fillStyle = t.accent; if (tpl.layout === 'nodes') { ctx.beginPath(); ctx.arc(x+12*u,y+12*u,8*u,0,Math.PI*2); ctx.fill(); } else ctx.fillRect(x, y, 3 * u, bh - H * .012); text(b.key, 'Block Text', bw - W * .04, bh * .18, x + W * .012, y + H * .012, 1.1); text(b.list.map(v => `• ${v}`).join('\n'), 'Block Text', bw - W * .04, bh * .65, x + W * .012, y + bh * .25); });
  text(c.footer, 'Footer', W * .88, H * .045); ctx.letterSpacing = '0px'; return { overflow };
 }
 export async function manualPdf(canvas: HTMLCanvasElement, format: DesignFormat, name: string) {

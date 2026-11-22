@@ -25,6 +25,12 @@
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
   --color-background: var(--background);
+  --color-manager: var(--manager);
+  --color-manager-card: var(--manager-card);
+  --color-manager-ink: var(--manager-ink);
+  --color-manager-muted: var(--manager-muted);
+  --color-manager-border: var(--manager-border);
+  --color-manager-action: var(--manager-action);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
@@ -75,6 +81,12 @@
 }
 
 :root {
+  --manager: #0b1121;
+  --manager-card: #151e31;
+  --manager-ink: #f1f5f9;
+  --manager-muted: #a0aec5;
+  --manager-border: #2c3951;
+  --manager-action: #2774ee;
   --manual-teal: oklch(0.6 0.104 184.7);
   --manual-teal-soft: oklch(0.96 0.025 184.7);
   --manual-navy: oklch(0.4 0.07 250);
@@ -235,3 +247,17 @@
 
 /* Transparency checkerboard for logo previews */
 .checkerboard { background-color: var(--card); background-image: linear-gradient(45deg, var(--muted) 25%, transparent 25%), linear-gradient(-45deg, var(--muted) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, var(--muted) 75%), linear-gradient(-45deg, transparent 75%, var(--muted) 75%); background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0; }
+
+/* Scoped dashboard theme; other administration tabs retain their existing palette. */
+.manager-dashboard {
+  --background: var(--manager);
+  --foreground: var(--manager-ink);
+  --card: var(--manager-card);
+  --card-foreground: var(--manager-ink);
+  --muted: var(--manager-card);
+  --muted-foreground: var(--manager-muted);
+  --border: var(--manager-border);
+  --input: var(--manager-border);
+  --primary: var(--manager-action);
+  --primary-foreground: var(--manager-ink);
+}
